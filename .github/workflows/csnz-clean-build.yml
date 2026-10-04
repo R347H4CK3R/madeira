@@ -21,12 +21,14 @@ jobs:
 
       - name: Install host tools
         run: |
-          brew install cmake ninja meson pkg-config bison ccache
+          brew install cmake ninja meson pkg-config bison ccache freetype
           rustup target add aarch64-apple-ios
           BREW_BISON="$(brew --prefix bison)/bin"
           echo "$BREW_BISON" >> "$GITHUB_PATH"
           export PATH="$BREW_BISON:$PATH"
           bison --version
+          mkdir -p research
+          ln -sfn "$(brew --prefix freetype)" research/freetype
           echo "$GITHUB_WORKSPACE/toolchains/llvm-mingw-20260421-ucrt-macos-universal/bin" >> "$GITHUB_PATH"
 
       - name: Install llvm-mingw
@@ -47,6 +49,13 @@ jobs:
         run: |
           bash build/gnutls-ios/build.sh
           bash build/ffmpeg/build.sh
+
+      - name: Configure Wine ARM64EC generated headers
+        run: |
+          export PATH="$GITHUB_WORKSPACE/toolchains/llvm-mingw-20260421-ucrt-macos-universal/bin:$PATH"
+          mkdir -p wine/build-arm64ec
+          cd wine/build-arm64ec
+          ../configure --enable-archs=arm64ec --without-x --disable-tests --enable-winegstreamer
 
       - name: Build Wine iOS unix library with CSNZ diagnostic
         run: bash build/ntdll-unix/build.sh
