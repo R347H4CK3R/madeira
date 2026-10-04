@@ -195,5 +195,6 @@ jobs:
             Madeira-CSNZ-SMC-Diagnostic.ipa
             Madeira-CSNZ-SMC-Diagnostic.ipa.sha256
             build/ntdll-unix/obj/*.err
+            build/win32u-unix/obj/*.err
           if-no-files-found: warn
           retention-days: 14
