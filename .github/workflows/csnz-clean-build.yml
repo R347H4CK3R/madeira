@@ -23,7 +23,11 @@ jobs:
         run: |
           brew install cmake ninja meson pkg-config bison ccache
           rustup target add aarch64-apple-ios
-          BREW_BISON="$(brew --prefix bison)/bin"\n          echo "$BREW_BISON" >> "$GITHUB_PATH"\n          export PATH="$BREW_BISON:$PATH"\n          bison --version\n          echo "$GITHUB_WORKSPACE/toolchains/llvm-mingw-20260421-ucrt-macos-universal/bin" >> "$GITHUB_PATH"
+          BREW_BISON="$(brew --prefix bison)/bin"
+          echo "$BREW_BISON" >> "$GITHUB_PATH"
+          export PATH="$BREW_BISON:$PATH"
+          bison --version
+          echo "$GITHUB_WORKSPACE/toolchains/llvm-mingw-20260421-ucrt-macos-universal/bin" >> "$GITHUB_PATH"
 
       - name: Install llvm-mingw
         run: |
