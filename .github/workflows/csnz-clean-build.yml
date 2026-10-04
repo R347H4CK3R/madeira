@@ -72,7 +72,9 @@ jobs:
           ../configure --enable-archs=arm64ec --without-x --disable-tests --enable-winegstreamer
           make -j"$(sysctl -n hw.ncpu)" include
           mkdir -p include-flat
-          find include -type f \( -name "*.h" -o -name "*.idl" \) -exec ln -sf {} include-flat/ \;
+          find include -type f \( -name "*.h" -o -name "*.idl" \) -exec sh -c 'ln -sf "$1" "include-flat/$(basename "$1")"' _ {} \;
+          test -e include-flat/wtypes.h
+          test -e include-flat/dwrite.h
 
       - name: Build Wine iOS unix library with CSNZ diagnostic
         if: steps.kit.outputs.cache-hit != 'true'
