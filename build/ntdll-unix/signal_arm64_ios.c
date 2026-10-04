@@ -12175,6 +12175,28 @@ static void bus_handler( int signal, siginfo_t *siginfo, void *sigcontext )
                         }
                         pend_insn = 0;
                         ios_fault_read_insn( (uint64_t)(uintptr_t)pc, &pend_insn );
+                        /* CSNZ diagnostic only: capture the exact host instruction and
+                         * Wine/Mach protection state without changing memory semantics. */
+                        {
+                            extern int ios_page_expected_prot( const void *addr );
+                            vm_region_basic_info_data_64_t di;
+                            mach_msg_type_number_t dic = VM_REGION_BASIC_INFO_COUNT_64;
+                            mach_port_t dio = MACH_PORT_NULL;
+                            mach_vm_address_t dra = (mach_vm_address_t)(uintptr_t)siginfo->si_addr;
+                            mach_vm_size_t drs = 0;
+                            kern_return_t dkr = mach_vm_region( mach_task_self(), &dra, &drs,
+                                                               VM_REGION_BASIC_INFO_64,
+                                                               (vm_region_info_t)&di, &dic, &dio );
+                            dprintf( 2, "[csnz-smc-diag] pc=%p fault=%p snap_base=%#llx insn=%08x "
+                                        "wine_prot=%d mach_kr=%d region=%#llx+%#llx cur=%d max=%d\n",
+                                     pc, siginfo->si_addr, (unsigned long long)base, pend_insn,
+                                     ios_page_expected_prot( siginfo->si_addr ), dkr,
+                                     (unsigned long long)dra, (unsigned long long)drs,
+                                     dkr == KERN_SUCCESS ? di.protection : -1,
+                                     dkr == KERN_SUCCESS ? di.max_protection : -1 );
+                            if (dio != MACH_PORT_NULL) mach_port_deallocate( mach_task_self(), dio );
+                            ios_page_vprot_explain( siginfo->si_addr, "csnz-smc-diag" );
+                        }
                         if (mach_vm_read_overwrite( mach_task_self(), base, sizeof(pend_pre),
                                                     (mach_vm_address_t)pend_pre, &vgot ) == KERN_SUCCESS &&
                             vgot == sizeof(pend_pre))
