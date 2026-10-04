@@ -109,6 +109,12 @@ jobs:
 
       - name: Build Wine support libraries
         run: |
+          # Clean CI has no pre-existing wineserver archive. c-gow/Madeira's
+          # bootstrap script reconstructs it from the pinned Wine source using
+          # the same iOS flags consumed by build.sh.
+          if [ ! -s build/wineserver/obj/libwineserver.a ]; then
+            bash build/wineserver/bootstrap-base.sh
+          fi
           bash build/wineserver/build.sh
           bash build/win32u-unix/build.sh
           bash build/wine-pe/build-ntdll.sh
