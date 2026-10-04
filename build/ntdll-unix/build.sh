@@ -109,6 +109,7 @@ compile_unixlib "$WINE_SRC/dlls/secur32/schannel_gnutls.c" "secur32_unixlib" "se
 # build tree, so that include dir is named explicitly here.
 compile_unixlib "$BUILD_DIR/dwrite_freetype_ios.c" "dwrite_unixlib" "dwrite" \
     -I"$WINE_SRC/dlls/dwrite" -I"$REPO_ROOT/research/freetype/include" \
+    -I"$REPO_ROOT/research/freetype/include/freetype2" \
     -I"$REPO_ROOT/wine/build-arm64ec/include"
 compile_unixlib "$CRYPTO_DIR/crypt32_unixlib_ios.c" "crypt32_unixlib" "crypt32" \
     -I"$WINE_SRC/dlls/crypt32" -I"$GNUTLS_PREFIX/include" \
@@ -143,7 +144,7 @@ compile_unixlib "$BUILD_DIR/dnsapi_unixlib_ios.c" "dnsapi_unixlib" "dnsapi" \
 # exist in a configured build tree's include dir, which $WINE_BUILD already is.
 FFMPEG_PREFIX="$REPO_ROOT/toolchains/ffmpeg-ios"
 compile_unixlib "$BUILD_DIR/winegstreamer_unixlib_ios.c" "winegstreamer_unixlib" "winegstreamer" \
-    -I"$WINE_SRC/dlls/winegstreamer" -I"$FFMPEG_PREFIX/include"
+    -I"$WINE_SRC/dlls/winegstreamer" -I"$REPO_ROOT/wine/build-arm64ec/include" -I"$FFMPEG_PREFIX/include"
 # MADEIRA ml1990: the wg_parser's H.264/HEVC (VideoToolbox) and AAC
 # (AudioToolbox) decoders.  Its own translation unit with NO Wine header --
 # CoreFoundation and winnt.h disagree about several names -- so it is compiled

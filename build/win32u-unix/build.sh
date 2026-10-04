@@ -135,6 +135,14 @@ fi
 if [ $FAILED -gt 0 ]; then
     echo ""
     echo "(not linking — errors in $OBJ_DIR/<name>.err)"
+    echo "=== win32u compiler failures ==="
+    for err in "$OBJ_DIR"/*.err; do
+        [ -s "$err" ] || continue
+        if grep -Eq "fatal error:| error:" "$err"; then
+            echo "--- $(basename "$err") ---"
+            grep -E "fatal error:| error:|^[^:]+:[0-9]+:[0-9]+:" "$err" || cat "$err"
+        fi
+    done
     exit 1
 fi
 
