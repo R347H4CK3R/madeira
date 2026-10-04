@@ -45,11 +45,12 @@ jobs:
           mkdir -p wine/build-macos
           cd wine/build-macos
           ../configure --without-x --disable-tests
-          make -j"$(sysctl -n hw.ncpu)" include/dwrite.h include/dwrite_1.h include/dwrite_2.h include/dwrite_3.h include/wtypes.h include/wtypesbase.h include/objidl.h include/objidlbase.h include/unknwn.h include/propidl.h include/mfobjects.h include/mftransform.h
+          make -j"$(sysctl -n hw.ncpu)" include/dwrite.h include/dwrite_1.h include/dwrite_2.h include/dwrite_3.h include/wtypes.h include/wtypesbase.h include/objidl.h include/objidlbase.h include/unknwn.h include/oaidl.h include/propidl.h include/mfobjects.h include/mftransform.h
           test -s include/dwrite.h
           test -s include/wtypes.h
           test -s include/objidlbase.h
           test -s include/unknwn.h
+          test -s include/oaidl.h
           test -s include/propidl.h
           test -s include/mfobjects.h
           test -s include/mftransform.h
@@ -121,6 +122,20 @@ jobs:
           bash build/freetype-ios/build.sh
           bash build/win32u-unix/build.sh
           bash build/wine-pe/build-ntdll.sh
+
+      - name: Save Wine support cache
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            app/Madeira/libntdll_unix.a
+            app/Madeira/libwineserver.a
+            app/Madeira/libwin32u_unix.a
+            build/ntdll-unix/obj
+            build/wineserver/obj
+            build/win32u-unix/obj
+            build/freetype-ios/build
+          key: wine-support-${{ runner.os }}-${{ runner.arch }}-4e9d45a-v3
 
       - name: Build FEX
         run: |
