@@ -45,13 +45,17 @@ jobs:
           mkdir -p wine/build-macos
           cd wine/build-macos
           ../configure --without-x --disable-tests
-          make -j"$(sysctl -n hw.ncpu)" include/dwrite.h include/dwrite_1.h include/dwrite_2.h include/dwrite_3.h include/wtypes.h include/wtypesbase.h include/objidl.h include/objidlbase.h include/unknwn.h include/oaidl.h include/propidl.h include/mfobjects.h include/mftransform.h
+          # Generate Wine's complete public header set. win32u includes ole2.h,
+          # whose COM/WIDL dependency chain is broader than the handful of
+          # headers used by ntdll/dwrite. Let Wine's generated Makefile own it.
+          make -j"$(sysctl -n hw.ncpu)" include
           test -s include/dwrite.h
           test -s include/wtypes.h
           test -s include/objidlbase.h
           test -s include/unknwn.h
           test -s include/oaidl.h
           test -s include/propidl.h
+          test -s include/oleidl.h
           test -s include/mfobjects.h
           test -s include/mftransform.h
 
