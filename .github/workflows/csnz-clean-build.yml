@@ -49,6 +49,7 @@ jobs:
             include/dwrite.h include/dwrite_1.h include/dwrite_2.h include/dwrite_3.h \
             include/wtypes.h include/wtypesbase.h include/objidl.h include/objidlbase.h \
             include/unknwn.h include/oaidl.h include/propidl.h include/oleidl.h \
+            include/exdisp.h include/shobjidl.h include/shobjidl_core.h \
             include/mfobjects.h include/mftransform.h
           test -s include/dwrite.h
           test -s include/wtypes.h
@@ -57,6 +58,8 @@ jobs:
           test -s include/oaidl.h
           test -s include/propidl.h
           test -s include/oleidl.h
+          test -s include/exdisp.h
+          test -s include/shobjidl.h
           test -s include/mfobjects.h
           test -s include/mftransform.h
 
@@ -115,45 +118,93 @@ jobs:
           test -s build/ntdll-unix/obj/dwrite_unixlib.o
           test -s build/ntdll-unix/obj/winegstreamer_unixlib.o
 
-      - name: Restore Wine support checkpoint
-        id: wine_support
+      - name: Restore wineserver checkpoint
+        id: wineserver
         uses: actions/cache/restore@v4
         with:
           path: |
             app/Madeira/libwineserver.a
-            app/Madeira/libwin32u_unix.a
             build/wineserver/obj
-            build/win32u-unix/obj
-            build/freetype-ios/build
-          key: wine-support-${{ runner.os }}-${{ runner.arch }}-4e9d45a-v4
+          key: wineserver-${{ runner.os }}-${{ runner.arch }}-4e9d45a-v1
 
-      - name: Build Wine support libraries
-        if: steps.wine_support.outputs.cache-hit != 'true'
+      - name: Build wineserver
+        if: steps.wineserver.outputs.cache-hit != 'true'
         run: |
-          # Clean CI has no pre-existing wineserver archive. c-gow/Madeira's
-          # bootstrap script reconstructs it from the pinned Wine source using
-          # the same iOS flags consumed by build.sh.
           if [ ! -s build/wineserver/obj/libwineserver.a ]; then
             bash build/wineserver/bootstrap-base.sh
           fi
           bash build/wineserver/build.sh
-          bash build/freetype-ios/build.sh
-          bash build/win32u-unix/build.sh
-          bash build/wine-pe/build-ntdll.sh
 
-      - name: Save Wine support cache
-        if: success()
+      - name: Save wineserver checkpoint
+        if: success() && steps.wineserver.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: |
-            app/Madeira/libntdll_unix.a
             app/Madeira/libwineserver.a
-            app/Madeira/libwin32u_unix.a
-            build/ntdll-unix/obj
             build/wineserver/obj
+          key: wineserver-${{ runner.os }}-${{ runner.arch }}-4e9d45a-v1
+
+      - name: Restore FreeType checkpoint
+        id: freetype_ios
+        uses: actions/cache/restore@v4
+        with:
+          path: build/freetype-ios/build
+          key: freetype-ios-${{ runner.os }}-${{ runner.arch }}-2.13.3-v1
+
+      - name: Build FreeType iOS
+        if: steps.freetype_ios.outputs.cache-hit != 'true'
+        run: bash build/freetype-ios/build.sh
+
+      - name: Save FreeType checkpoint
+        if: success() && steps.freetype_ios.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: build/freetype-ios/build
+          key: freetype-ios-${{ runner.os }}-${{ runner.arch }}-2.13.3-v1
+
+      - name: Restore win32u checkpoint
+        id: win32u
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            app/Madeira/libwin32u_unix.a
             build/win32u-unix/obj
-            build/freetype-ios/build
-          key: wine-support-${{ runner.os }}-${{ runner.arch }}-4e9d45a-v4
+          key: win32u-${{ runner.os }}-${{ runner.arch }}-4e9d45a-v1
+
+      - name: Build win32u
+        if: steps.win32u.outputs.cache-hit != 'true'
+        run: bash build/win32u-unix/build.sh
+
+      - name: Save win32u checkpoint
+        if: success() && steps.win32u.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            app/Madeira/libwin32u_unix.a
+            build/win32u-unix/obj
+          key: win32u-${{ runner.os }}-${{ runner.arch }}-4e9d45a-v1
+
+      - name: Restore Wine PE checkpoint
+        id: wine_pe
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            app/Madeira/ntdll.dll
+            wine/build-arm64ec/dlls/ntdll
+          key: wine-pe-${{ runner.os }}-${{ runner.arch }}-4e9d45a-v1
+
+      - name: Build Wine PE ntdll
+        if: steps.wine_pe.outputs.cache-hit != 'true'
+        run: bash build/wine-pe/build-ntdll.sh
+
+      - name: Save Wine PE checkpoint
+        if: success() && steps.wine_pe.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            app/Madeira/ntdll.dll
+            wine/build-arm64ec/dlls/ntdll
+          key: wine-pe-${{ runner.os }}-${{ runner.arch }}-4e9d45a-v1
 
       - name: Restore Build FEX checkpoint
         id: fex
