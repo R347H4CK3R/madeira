@@ -66,7 +66,13 @@ jobs:
           sed -i '' 's/XP_MS( ru\.ri_page_wait_time_mach - pru\.ri_page_wait_time_mach )/0.0/' build/ntdll-unix/server_ios.c
           bash build/ntdll-unix/build.sh
 
-      - name: Gate Wine unix library\n        run: |\n          test -s app/Madeira/libntdll_unix.a\n          test -s build/ntdll-unix/obj/dwrite_unixlib.o\n          test -s build/ntdll-unix/obj/winegstreamer_unixlib.o\n\n      - name: Build Wine support libraries
+      - name: Gate Wine unix library
+        run: |
+          test -s app/Madeira/libntdll_unix.a
+          test -s build/ntdll-unix/obj/dwrite_unixlib.o
+          test -s build/ntdll-unix/obj/winegstreamer_unixlib.o
+
+      - name: Build Wine support libraries
         run: |
           bash build/wineserver/build.sh
           bash build/win32u-unix/build.sh
