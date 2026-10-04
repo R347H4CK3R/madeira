@@ -46,7 +46,12 @@ jobs:
           mkdir -p wine/build-macos
           cd wine/build-macos
           ../configure --without-x --disable-tests
-          make -j"$(sysctl -n hw.ncpu)" include
+          make -j"$(sysctl -n hw.ncpu)" include/dwrite.h include/dwrite_1.h include/dwrite_2.h include/dwrite_3.h include/wtypes.h include/wtypesbase.h include/objidl.h include/objidlbase.h include/mfobjects.h include/mftransform.h
+          test -s include/dwrite.h
+          test -s include/wtypes.h
+          test -s include/objidlbase.h
+          test -s include/mfobjects.h
+          test -s include/mftransform.h
 
       - name: Restore reusable Madeira build kit
         id: kit
