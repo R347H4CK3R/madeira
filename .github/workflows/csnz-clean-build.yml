@@ -46,6 +46,7 @@ jobs:
           mkdir -p wine/build-macos
           cd wine/build-macos
           ../configure --without-x --disable-tests
+          make -j"$(sysctl -n hw.ncpu)" include
 
       - name: Restore reusable Madeira build kit
         id: kit
