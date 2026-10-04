@@ -75,7 +75,17 @@ jobs:
           mkdir -p wine/build-arm64ec
           cd wine/build-arm64ec
           ../configure --enable-archs=arm64ec --without-x --disable-tests --enable-winegstreamer
-          make -j"$(sysctl -n hw.ncpu)" include
+          # Build the actual PE modules consumed by these unix-side bridges.
+          # Wine's dependency graph then generates the complete transitive WIDL
+          # header set instead of guessing individual generated headers.
+          make -j"$(sysctl -n hw.ncpu)" \
+            dlls/dwrite/arm64ec-windows/dwrite.dll \
+            dlls/winegstreamer/arm64ec-windows/winegstreamer.dll
+          test -s include/dwrite.h
+          test -s include/wtypes.h
+          test -s include/propidl.h
+          test -s include/mfobjects.h
+          test -s include/mftransform.h
 
       - name: Build Wine iOS unix library with CSNZ diagnostic
         if: steps.kit.outputs.cache-hit != 'true'
