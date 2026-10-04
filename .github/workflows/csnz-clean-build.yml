@@ -1,7 +1,5 @@
 name: Build clean CSNZ Madeira IPA
 on:
-  pull_request:
-    branches: [main]
   push:
     branches: [csnz-smc-diag-clean]
   workflow_dispatch:
@@ -46,10 +44,11 @@ jobs:
           mkdir -p wine/build-macos
           cd wine/build-macos
           ../configure --without-x --disable-tests
-          make -j"$(sysctl -n hw.ncpu)" include/dwrite.h include/dwrite_1.h include/dwrite_2.h include/dwrite_3.h include/wtypes.h include/wtypesbase.h include/objidl.h include/objidlbase.h include/mfobjects.h include/mftransform.h
+          make -j"$(sysctl -n hw.ncpu)" include/dwrite.h include/dwrite_1.h include/dwrite_2.h include/dwrite_3.h include/wtypes.h include/wtypesbase.h include/objidl.h include/objidlbase.h include/unknwn.h include/mfobjects.h include/mftransform.h
           test -s include/dwrite.h
           test -s include/wtypes.h
           test -s include/objidlbase.h
+          test -s include/unknwn.h
           test -s include/mfobjects.h
           test -s include/mftransform.h
 
