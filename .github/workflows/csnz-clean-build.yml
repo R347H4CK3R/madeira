@@ -47,7 +47,19 @@ jobs:
           cd wine/build-macos
           ../configure --without-x --disable-tests
 
+      - name: Restore reusable Madeira build kit
+        id: kit
+        uses: actions/cache@v4
+        with:
+          path: |
+            toolchains/gnutls-ios
+            toolchains/ffmpeg-ios
+            app/Madeira/libntdll_unix.a
+            build/ntdll-unix/obj/libntdll_unix.a
+          key: madeira-kit-${{ runner.os }}-${{ runner.arch }}-4e9d45a-v1
+
       - name: Build media and crypto dependencies
+        if: steps.kit.outputs.cache-hit != 'true'
         run: |
           bash build/gnutls-ios/build.sh
           bash build/ffmpeg/build.sh
@@ -61,10 +73,18 @@ jobs:
           make -j"$(sysctl -n hw.ncpu)" include
 
       - name: Build Wine iOS unix library with CSNZ diagnostic
+        if: steps.kit.outputs.cache-hit != 'true'
         run: |
           # Xcode 26 removed ri_page_wait_time_mach; it is telemetry only.
           sed -i '' 's/XP_MS( ru\.ri_page_wait_time_mach - pru\.ri_page_wait_time_mach )/0.0/' build/ntdll-unix/server_ios.c
           bash build/ntdll-unix/build.sh
+
+      - name: Recompile only patched Wine objects
+        if: steps.kit.outputs.cache-hit == 'true'
+        run: |
+          # Xcode 26 removed this telemetry field; no runtime semantics depend on it.
+          sed -i '' 's/XP_MS( ru\.ri_page_wait_time_mach - pru\.ri_page_wait_time_mach )/0.0/' build/ntdll-unix/server_ios.c
+          bash build/ntdll-unix/compile_patched.sh
 
       - name: Gate Wine unix library
         run: |
