@@ -56,9 +56,13 @@ jobs:
           mkdir -p wine/build-arm64ec
           cd wine/build-arm64ec
           ../configure --enable-archs=arm64ec --without-x --disable-tests --enable-winegstreamer
+          make -j"$(sysctl -n hw.ncpu)" include/wtypes.h include/dwrite.h include/dwrite_3.h || make -j"$(sysctl -n hw.ncpu)" include
 
       - name: Build Wine iOS unix library with CSNZ diagnostic
-        run: bash build/ntdll-unix/build.sh
+        run: |
+          # Xcode 26 removed ri_page_wait_time_mach; it is telemetry only.
+          sed -i '' 's/XP_MS( ru\.ri_page_wait_time_mach - pru\.ri_page_wait_time_mach )/0.0/' build/ntdll-unix/server_ios.c
+          bash build/ntdll-unix/build.sh
 
       - name: Build Wine support libraries
         run: |
