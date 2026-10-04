@@ -1,0 +1,132 @@
+name: Build clean CSNZ Madeira IPA
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 360
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+      MADEIRA_ALLOW_NO_D3D12: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Install host tools
+        run: |
+          brew install cmake ninja meson pkg-config bison ccache
+          rustup target add aarch64-apple-ios
+
+      - name: Install llvm-mingw
+        run: |
+          mkdir -p toolchains
+          curl -fL --retry 3 -o /tmp/llvm-mingw.tar.xz \
+            https://github.com/mstorsjo/llvm-mingw/releases/download/20260421/llvm-mingw-20260421-ucrt-macos-universal.tar.xz
+          echo "bd85a3975723815cef28dbbd2ca2cb0c926f6b348a12a0453f39f7af273cb3f7  /tmp/llvm-mingw.tar.xz" | shasum -a 256 -c -
+          tar -xJf /tmp/llvm-mingw.tar.xz -C toolchains
+
+      - name: Configure Wine generated headers
+        run: |
+          mkdir -p wine/build-macos
+          cd wine/build-macos
+          ../configure --without-x --disable-tests
+
+      - name: Build media and crypto dependencies
+        run: |
+          bash build/gnutls-ios/build.sh
+          bash build/ffmpeg/build.sh
+
+      - name: Build Wine iOS unix library with CSNZ diagnostic
+        run: bash build/ntdll-unix/build.sh
+
+      - name: Build Wine support libraries
+        run: |
+          bash build/wineserver/build.sh
+          bash build/win32u-unix/build.sh
+          bash build/wine-pe/build-ntdll.sh
+
+      - name: Build FEX
+        run: |
+          bash build/fex-ios/build.sh
+          bash build/fex-arm64ec/build.sh
+
+      - name: Build pairing library
+        run: bash build/rppairing-ios/build.sh
+
+      - name: Build LLVM host tablegen
+        run: |
+          git clone --filter=blob:none https://github.com/llvm/llvm-project.git toolchains/llvm-project
+          git -C toolchains/llvm-project checkout 8dfdcc7b7
+          cmake -S toolchains/llvm-project/llvm -B toolchains/llvm-host-build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DLLVM_TARGETS_TO_BUILD="" -DLLVM_INCLUDE_TESTS=OFF \
+            -DLLVM_ENABLE_PROJECTS="" -DLLVM_ENABLE_ZLIB=OFF
+          cmake --build toolchains/llvm-host-build --target llvm-tblgen
+
+      - name: Build LLVM iOS libraries
+        run: |
+          python3 - <<'PY'
+          p='toolchains/llvm-project/llvm/cmake/modules/AddLLVM.cmake'
+          s=open(p).read()
+          s=s.replace('MATCHES "Darwin"', 'MATCHES "Darwin|iOS"')
+          open(p,'w').write(s)
+          PY
+          cmake -S toolchains/llvm-project/llvm -B toolchains/llvm-ios-build -G Ninja \
+            -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 \
+            -DCMAKE_BUILD_TYPE=Release -DLLVM_HOST_TRIPLE=arm64-apple-ios17.0 \
+            -DLLVM_DEFAULT_TARGET_TRIPLE=arm64-apple-ios17.0 -DLLVM_TARGET_ARCH=host \
+            -DLLVM_TARGETS_TO_BUILD="" -DLLVM_ENABLE_PROJECTS="" -DLLVM_BUILD_TOOLS=OFF \
+            -DLLVM_BUILD_UTILS=OFF -DLLVM_INCLUDE_TESTS=OFF -DLLVM_ENABLE_ZLIB=OFF \
+            -DLLVM_TABLEGEN="$PWD/toolchains/llvm-host-build/bin/llvm-tblgen"
+          cmake --build toolchains/llvm-ios-build
+
+      - name: Build DXMT iOS combined library
+        run: |
+          xcodebuild -downloadComponent MetalToolchain || true
+          bash build/dxmt-ios/build.sh
+          xcrun -sdk iphoneos libtool -static -o build/dxmt-ios/libdxmt_combined.a \
+            build/dxmt-ios/obj/*.o toolchains/llvm-ios-build/lib/*.a
+          cp build/dxmt-ios/libdxmt_combined.a app/Madeira/libdxmt_combined.a
+
+      - name: Satisfy intentionally unbundled VC runtime resource
+        run: mkdir -p app/Madeira/x86_64-vcruntime
+
+      - name: Stage licenses
+        run: bash build/stage-licenses.sh
+
+      - name: Build unsigned app
+        run: |
+          rm -rf /tmp/MadeiraDerived
+          xcodebuild -project app/Madeira.xcodeproj -scheme Madeira \
+            -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath /tmp/MadeiraDerived \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+
+      - name: Package IPA
+        run: |
+          APP="$(find /tmp/MadeiraDerived/Build/Products -type d -name Madeira.app | head -1)"
+          test -n "$APP"
+          mkdir -p Payload
+          cp -R "$APP" Payload/Madeira.app
+          /usr/bin/codesign --force --sign - Payload/Madeira.app || true
+          ditto -c -k --sequesterRsrc --keepParent Payload Madeira-CSNZ-SMC-Diagnostic.ipa
+          shasum -a 256 Madeira-CSNZ-SMC-Diagnostic.ipa > Madeira-CSNZ-SMC-Diagnostic.ipa.sha256
+          ls -lh Madeira-CSNZ-SMC-Diagnostic.ipa
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Madeira-CSNZ-SMC-Diagnostic
+          path: |
+            Madeira-CSNZ-SMC-Diagnostic.ipa
+            Madeira-CSNZ-SMC-Diagnostic.ipa.sha256
+            build/ntdll-unix/obj/*.err
+          if-no-files-found: warn
+          retention-days: 14
