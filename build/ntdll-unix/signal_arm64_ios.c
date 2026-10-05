@@ -2067,6 +2067,35 @@ static void *ios_mach_exception_thread( void *arg )
 
                 uint64_t fault_pc = (uint64_t)__darwin_arm_thread_state64_get_pc(state);
                 int is_exec_fault = (fault_addr == (uintptr_t)fault_pc);
+                int non_ec_exec_fault = 0;
+
+                /* COD/ARM64EC: do not native-redirect x64 pages from hybrid images.
+                 * The image pool is a byte-for-byte copy of PE .text, so ARM64EC DLLs
+                 * contain BOTH native EC instructions and x64 instructions there.
+                 * Executing an x64 page from the pool makes the ARM CPU decode bytes such
+                 * as 48 89 5c 24 as one ARM instruction; COD/ucrtbase then reported both
+                 * insn and Mach code[1] as 0x245c8948.  Classify the ORIGINAL PE VA with
+                 * the faulting thread's EcCodeBitMap before deciding that a PE exec fault
+                 * may be redirected to the native pool copy. */
+                if (is_exec_fault && thread_teb)
+                {
+                    PEB *fault_peb = ((TEB *)thread_teb)->Peb;
+                    const uint64_t *ecmap = fault_peb ? (const uint64_t *)fault_peb->EcCodeBitMap : NULL;
+                    if (ecmap && fault_pc < 0x8000000000ULL)
+                    {
+                        uint64_t page = fault_pc >> 12;
+                        non_ec_exec_fault = !((ecmap[page >> 6] >> (page & 63)) & 1);
+                    }
+                }
+                if (is_exec_fault && non_ec_exec_fault)
+                {
+                    static volatile int cod_x64_exec_count;
+                    int n = __sync_add_and_fetch(&cod_x64_exec_count, 1);
+                    if (n <= 32 || (n % 4096) == 0)
+                        dprintf(STDERR_FILENO,
+                            "[cod-x64-exec] #%d PE pc=%p is non-EC; declining native pool redirect -> x64/FEX exception path\\n",
+                            n, (void *)(uintptr_t)fault_pc);
+                }
 
                 /* ml454 (#74): the trampoline requirement gated the WHOLE
                  * redirect block, but only the in-pool x18-fix branch uses
@@ -2075,7 +2104,7 @@ static void *ios_mach_exception_thread( void *arg )
                  * thread with no registered trampoline (the ml452 renderer)
                  * lost ALL redirects and its image-VA exec fault stormed
                  * 65k× through guest SEH, re-entering the emission locks. */
-                if (is_exec_fault)
+                if (is_exec_fault && !non_ec_exec_fault)
                 {
                     uintptr_t jit_rx = (uintptr_t)ios_jit_rx_base_global;
                     size_t jit_sz = ios_jit_pool_size_global;
@@ -2502,6 +2531,43 @@ static void *ios_mach_exception_thread( void *arg )
                                 "[x18-emul3] UNRECOGNIZED insn=%08x pc=%p teb+0x%llx\n",
                                 insn, (void*)(uintptr_t)fault_pc,
                                 (unsigned long long)fault_addr);
+                        }
+                    }
+                }
+            }
+
+            /* COD/ARM64EC pool-domain recovery.
+             * A non-EC x64 page must never execute directly from a byte-for-byte
+             * PE image copy in the ARM64 JIT pool. If one does, reverse it to its
+             * original PE VA; the next execute fault is deliberately NOT redirected
+             * above and therefore enters Wine/FEX's x64 dispatch path. */
+            if (!handled && thread_teb)
+            {
+                extern void *ios_jit_rx_base_global;
+                extern size_t ios_jit_pool_size_global;
+                extern uintptr_t ios_jit_reverse_translate_addr(void *addr);
+                uintptr_t rx = (uintptr_t)ios_jit_rx_base_global;
+                size_t psz = ios_jit_pool_size_global;
+                uintptr_t pc = (uintptr_t)__darwin_arm_thread_state64_get_pc(state);
+                if (rx && psz && pc >= rx && pc < rx + psz)
+                {
+                    uintptr_t pe_pc = ios_jit_reverse_translate_addr((void *)pc);
+                    PEB *fault_peb = ((TEB *)thread_teb)->Peb;
+                    const uint64_t *ecmap = fault_peb ? (const uint64_t *)fault_peb->EcCodeBitMap : NULL;
+                    if (pe_pc && pe_pc != pc && ecmap && pe_pc < 0x8000000000ULL)
+                    {
+                        uint64_t page = pe_pc >> 12;
+                        int is_ec = (ecmap[page >> 6] >> (page & 63)) & 1;
+                        if (!is_ec)
+                        {
+                            static volatile int cod_pool_x64_count;
+                            int n = __sync_add_and_fetch(&cod_pool_x64_count, 1);
+                            if (n <= 32 || (n % 4096) == 0)
+                                dprintf(STDERR_FILENO,
+                                    "[cod-x64-pool] #%d native pool pc=%p reverses to non-EC PE pc=%p; returning to x64/FEX path\\n",
+                                    n, (void *)pc, (void *)pe_pc);
+                            __darwin_arm_thread_state64_set_pc_fptr(state, (void *)pe_pc);
+                            handled = 1;
                         }
                     }
                 }
