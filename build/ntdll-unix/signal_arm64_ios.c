@@ -3044,6 +3044,31 @@ static void *ios_mach_exception_thread( void *arg )
                         noalias_n++;
                         mach_vm_read_overwrite(mach_task_self(), (mach_vm_address_t)fault_pc, 4,
                                                (mach_vm_address_t)&ninsn, &ngot);
+                        /* COD diagnostic: independently reconstruct the effective address
+                         * for the simple immediate store families before trusting Mach's
+                         * code[1]. Logging only; this does not alter fault handling. */
+                        if (ngot == 4)
+                        {
+                            int rn = (ninsn >> 5) & 0x1f;
+                            uint64_t base = (rn == 31) ? state.__sp : state.__x[rn];
+                            uint64_t ea = 0;
+                            int ea_valid = 0;
+                            const char *ea_kind = "unknown";
+                            if ((ninsn & 0xffc00000) == 0xf9000000) { ea = base + (((ninsn >> 10) & 0xfff) * 8ULL); ea_valid = 1; ea_kind = "str64-uimm"; }
+                            else if ((ninsn & 0xffc00000) == 0xb9000000) { ea = base + (((ninsn >> 10) & 0xfff) * 4ULL); ea_valid = 1; ea_kind = "str32-uimm"; }
+                            else if ((ninsn & 0xffc00000) == 0x39000000) { ea = base + ((ninsn >> 10) & 0xfff); ea_valid = 1; ea_kind = "strb-uimm"; }
+                            else if ((ninsn & 0xffc00000) == 0x79000000) { ea = base + (((ninsn >> 10) & 0xfff) * 2ULL); ea_valid = 1; ea_kind = "strh-uimm"; }
+                            else if ((ninsn & 0xfffffc00) == 0xc89ffc00 ||
+                                     (ninsn & 0xfffffc00) == 0x889ffc00 ||
+                                     (ninsn & 0xfffffc00) == 0x489ffc00 ||
+                                     (ninsn & 0xfffffc00) == 0x089ffc00) { ea = base; ea_valid = 1; ea_kind = "stlr"; }
+                            if (ea_valid)
+                                dprintf(STDERR_FILENO,
+                                    "[cod-ea] insn=0x%08x kind=%s Rn=%s%d base=0x%llx decoded_ea=0x%llx mach_addr=0x%llx match=%d\n",
+                                    ninsn, ea_kind, rn == 31 ? "sp" : "x", rn,
+                                    (unsigned long long)base, (unsigned long long)ea,
+                                    (unsigned long long)fault_addr, ea == (uint64_t)fault_addr);
+                        }
                         if (mach_vm_region(mach_task_self(), &na, &ns, VM_REGION_BASIC_INFO_64,
                                            (vm_region_info_t)&ni, &nc, &no) == KERN_SUCCESS)
                             dprintf(STDERR_FILENO,
