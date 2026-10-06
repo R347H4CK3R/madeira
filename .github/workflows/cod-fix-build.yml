@@ -1,0 +1,43 @@
+name: COD ARM64EC fix build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [cod-store-emulator-fix]
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Xcode info
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path
+      - name: Install build dependencies
+        run: brew install autoconf automake libtool pkg-config meson ninja cmake
+      - name: Configure Wine host tree
+        run: |
+          mkdir -p wine/build-macos
+          cd wine/build-macos
+          ../configure --without-x --disable-tests --enable-winegstreamer
+      - name: Build iOS ntdll unix library
+        run: |
+          chmod +x build/ntdll-unix/build.sh
+          build/ntdll-unix/build.sh
+      - name: Build unsigned Madeira app
+        run: |
+          xcodebuild -project app/Madeira.xcodeproj -scheme Madeira -configuration Debug -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+      - name: Package IPA
+        run: |
+          APP=$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*Debug-iphoneos/Madeira.app' -print -quit)
+          test -n "$APP"
+          mkdir -p Payload
+          cp -R "$APP" Payload/Madeira.app
+          /usr/bin/zip -qry Madeira-COD-ARM64EC-fix.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Madeira-COD-ARM64EC-fix
+          path: Madeira-COD-ARM64EC-fix.ipa
