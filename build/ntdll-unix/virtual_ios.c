@@ -12421,6 +12421,25 @@ static inline int mprotect_exec( void *base, size_t size, int unix_prot )
                 void *bm_page   = ROUND_ADDR((char *)arm64ec_view->base + bm_start, page_mask);
                 set_vprot(arm64ec_view, bm_page, bm_size,
                           VPROT_READ | VPROT_WRITE | VPROT_COMMITTED);
+
+                /* COD/ARM64EC: the PE bitmap is the authoritative per-4K-page
+                 * code-domain map.  Mirror those bits to the executable pool
+                 * alias instead of treating a hybrid image as one EC domain.
+                 * A hybrid DLL such as ucrtbase contains both ARM64EC and x64
+                 * pages; coarse pool marking makes DispatchJump execute x64
+                 * bytes as ARM64.  Clear first because pool ranges are reused. */
+                {
+                    UINT64 *ecmap = (UINT64 *)arm64ec_view->base;
+                    size_t pages = (image_size + 0xfff) >> 12;
+                    size_t p;
+                    clear_arm64ec_range(jit_base, image_size);
+                    for (p = 0; p < pages; p++)
+                    {
+                        size_t src_page = ((size_t)image_base >> 12) + p;
+                        if ((ecmap[src_page >> 6] >> (src_page & 63)) & 1)
+                            set_arm64ec_range(jit_base + (p << 12), 0x1000);
+                    }
+                }
                 /* CRITICAL FIX: ARM64EC PEs (ntdll, kernel32, ucrtbase, etc.)
                  * have INTERMIXED ARM64EC code AND x86_64 syscall stubs in
                  * their .text section. The IMAGE_ARM64EC_METADATA::CodeMap
@@ -12486,7 +12505,7 @@ static inline int mprotect_exec( void *base, size_t size, int unix_prot )
                     {
                         /* Fallback: mark whole image as EC (old behavior, may misclassify x64 stubs) */
                         ERR("iOS JIT: no CodeMap found — falling back to coarse-mark whole image\n");
-                        set_arm64ec_range(jit_base, image_size);
+                        /* PE bitmap mirror above is already authoritative; keep it unchanged. */
                     }
                 }
                 {
