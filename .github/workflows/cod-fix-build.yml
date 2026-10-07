@@ -24,9 +24,18 @@ jobs:
           brew install autoconf automake libtool pkg-config meson ninja cmake bison
           echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
 
+      - name: Install pinned Madeira llvm-mingw
+        run: |
+          mkdir -p toolchains
+          gh release download 20260421 --repo mstorsjo/llvm-mingw --pattern 'llvm-mingw-20260421-ucrt-macos-universal.tar.xz' --dir toolchains
+          cd toolchains
+          echo "bd85a3975723815cef28dbbd2ca2cb0c926f6b348a12a0453f39f7af273cb3f7  llvm-mingw-20260421-ucrt-macos-universal.tar.xz" | shasum -a 256 -c -
+          tar -xJf llvm-mingw-20260421-ucrt-macos-universal.tar.xz
+          echo "$GITHUB_WORKSPACE/toolchains/llvm-mingw-20260421-ucrt-macos-universal/bin" >> "$GITHUB_PATH"
+
       - name: Configure Wine host tree
         run: |
-          export PATH="$(brew --prefix bison)/bin:$PATH"\n          export LDFLAGS="-L$(brew --prefix llvm)/lib"\n          export CPPFLAGS="-I$(brew --prefix llvm)/include"
+          export PATH="$GITHUB_WORKSPACE/toolchains/llvm-mingw-20260421-ucrt-macos-universal/bin:$(brew --prefix bison)/bin:$PATH"\n          command -v aarch64-w64-mingw32-clang\n          command -v llvm-dlltool\n          command -v ld.lld\n          export LDFLAGS="-L$(brew --prefix llvm)/lib"\n          export CPPFLAGS="-I$(brew --prefix llvm)/include"
           bison --version
           mkdir -p wine/build-macos
           cd wine/build-macos
