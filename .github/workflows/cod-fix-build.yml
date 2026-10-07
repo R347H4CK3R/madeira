@@ -2,9 +2,6 @@ name: COD ARM64EC fix build
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - cod-store-emulator-fix
 
 jobs:
   build:
