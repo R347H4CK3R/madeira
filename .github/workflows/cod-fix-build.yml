@@ -59,6 +59,7 @@ jobs:
           cd wine/build-arm64ec
           ../configure --enable-archs=arm64ec --without-x --disable-tests --enable-winegstreamer
           make -j2 include
+          test -f include/wtypes.h || { echo 'wtypes.h was not generated'; find . -name wtypes.h -print; exit 1; }
 
       - name: Build iOS ntdll unix library
         run: |
