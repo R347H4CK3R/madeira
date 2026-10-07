@@ -59,8 +59,9 @@ jobs:
           cd wine/build-arm64ec
           ../configure --enable-archs=arm64ec --without-x --disable-tests --enable-winegstreamer
           make -j2 include
-          make -j2 include/wine/windows/wtypes.h include/wine/windows/dwrite.h include/wine/windows/dwrite_3.h
-          find include -name 'wtypes.h' -o -name 'dwrite.h' -o -name 'dwrite_3.h'
+          make -j2 dlls/dwrite || true
+          make -j2 dlls/winegstreamer || true
+          find . \( -name 'wtypes.h' -o -name 'dwrite.h' -o -name 'dwrite_3.h' \) -print
 
       - name: Build iOS ntdll unix library
         run: |
