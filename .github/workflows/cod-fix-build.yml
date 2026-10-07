@@ -68,6 +68,12 @@ jobs:
           test -s include/wine/windows/wtypes.h
           test -s include/wine/windows/dwrite.h
           test -s include/wine/windows/dwrite_3.h
+          mkdir -p ../build-macos/include/wine/windows
+          cp include/wine/windows/wtypes.h ../build-macos/include/wine/windows/wtypes.h
+          cp include/wine/windows/dwrite.h ../build-macos/include/wine/windows/dwrite.h
+          cp include/wine/windows/dwrite_3.h ../build-macos/include/wine/windows/dwrite_3.h
+          test -s ../build-macos/include/wine/windows/wtypes.h
+          test -s ../build-macos/include/wine/windows/dwrite.h
 
       - name: Build iOS ntdll unix library
         run: |
