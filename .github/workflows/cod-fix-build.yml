@@ -59,6 +59,8 @@ jobs:
           cd wine/build-arm64ec
           ../configure --enable-archs=arm64ec --without-x --disable-tests --enable-winegstreamer
           make -j2 include
+          make -j2 tools/widl
+          test -x tools/widl/widl
           mkdir -p include/wine/windows
           tools/widl/widl -I../include -h -o include/wine/windows/wtypes.h ../include/wtypes.idl
           tools/widl/widl -I../include -h -o include/wine/windows/dwrite.h ../include/dwrite.idl
