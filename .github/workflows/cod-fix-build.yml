@@ -46,9 +46,11 @@ jobs:
 
       - name: Build iOS dependency prefixes
         run: |
-          chmod +x build/gnutls-ios/build.sh build/ffmpeg/build.sh
+          chmod +x build/gnutls-ios/build.sh build/ffmpeg/build.sh build/freetype-ios/build.sh
           build/gnutls-ios/build.sh
           build/ffmpeg/build.sh
+          git clone --depth 1 --branch VER-2-13-3 https://github.com/freetype/freetype.git research/freetype
+          build/freetype-ios/build.sh
 
       - name: Configure Wine ARM64EC headers
         run: |
