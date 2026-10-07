@@ -61,7 +61,11 @@ jobs:
       - name: Build iOS ntdll unix library
         run: |
           chmod +x build/ntdll-unix/build.sh
-          build/ntdll-unix/build.sh
+          build/ntdll-unix/build.sh || rc=$?
+          if [ -n "${rc:-}" ]; then
+            find build/ntdll-unix/obj -name '*.err' -size +0c -print -exec cat {} \;
+            exit "$rc"
+          fi
 
       - name: Build unsigned Madeira app
         run: |
