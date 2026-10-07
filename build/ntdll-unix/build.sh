@@ -65,7 +65,7 @@ compile_unixlib() {
         -include "$WINE_BUILD/include/config.h" \
         -include "$BUILD_DIR/shims/wine_ios_exit.h" \
         -I"$BUILD_DIR/shims" -I"$BUILD_DIR/../madsync" -DHAVE_LINUX_NTSYNC_H=1 \
-        -I"$WINE_BUILD/include" -I"$WINE_SRC/include" \
+        -I"$WINE_BUILD/include" -I"$WINE_BUILD/include/wine/windows" -I"$WINE_SRC/include" -I"$WINE_SRC/include/wine/windows" \
         -D__WINESRC__ -D_NTSYSTEM_ -D_ACRTIMP= -DWINBASEAPI= \
         -DWINE_UNIX_LIB -DWINE_IOS=1 \
         -D__wine_unix_call_funcs=${prefix}_unix_call_funcs \
