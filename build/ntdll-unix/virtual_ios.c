@@ -12503,9 +12503,7 @@ static inline int mprotect_exec( void *base, size_t size, int unix_prot )
                     }
                     if (!found_codemap)
                     {
-                        /* Fallback: mark whole image as EC (old behavior, may misclassify x64 stubs) */
-                        ERR("iOS JIT: no CodeMap found — falling back to coarse-mark whole image\n");
-                        /* PE bitmap mirror above is already authoritative; keep it unchanged. */
+                        ERR("iOS JIT: no CodeMap found — preserving mirrored PE EC bitmap\n");
                     }
                 }
                 {
@@ -12545,7 +12543,23 @@ static inline int mprotect_exec( void *base, size_t size, int unix_prot )
             }
             else
             {
-                ERR("iOS JIT: NOT marking jit %p+0x%lx as EC (no .hexpthk section, pure x86_64)\n",
+                /* Pure x86_64 images must explicitly clear the destination
+                 * pool bitmap. The pool is reused across pseudo-processes, so
+                 * "do not mark" is not sufficient: an old ARM64EC bit can
+                 * survive at the same pool address and make DispatchJump treat
+                 * x86_64 bytes as native ARM64. */
+                if (arm64ec_view)
+                {
+                    char *jit_base = (char *)jit_rx_base + offset;
+                    size_t bm_start = ((size_t)jit_base >> 12) / 8;
+                    size_t bm_end   = (((size_t)jit_base + image_size) >> 12) / 8;
+                    size_t bm_size  = ROUND_SIZE(bm_start, bm_end + 1 - bm_start, page_mask);
+                    void *bm_page   = ROUND_ADDR((char *)arm64ec_view->base + bm_start, page_mask);
+                    set_vprot(arm64ec_view, bm_page, bm_size,
+                              VPROT_READ | VPROT_WRITE | VPROT_COMMITTED);
+                    clear_arm64ec_range(jit_base, image_size);
+                }
+                ERR("iOS JIT: cleared EC bitmap for jit %p+0x%lx (no .hexpthk section, pure x86_64)\n",
                     (char *)jit_rx_base + offset, (unsigned long)image_size);
             }
 
