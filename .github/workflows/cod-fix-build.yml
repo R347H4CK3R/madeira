@@ -35,7 +35,10 @@ jobs:
 
       - name: Configure Wine host tree
         run: |
-          export PATH="$GITHUB_WORKSPACE/toolchains/llvm-mingw-20260421-ucrt-macos-universal/bin:$(brew --prefix bison)/bin:$PATH"\n          command -v aarch64-w64-mingw32-clang\n          command -v llvm-dlltool\n          command -v ld.lld\n          export LDFLAGS="-L$(brew --prefix llvm)/lib"\n          export CPPFLAGS="-I$(brew --prefix llvm)/include"
+          export PATH="$GITHUB_WORKSPACE/toolchains/llvm-mingw-20260421-ucrt-macos-universal/bin:$(brew --prefix bison)/bin:$PATH"
+          command -v aarch64-w64-mingw32-clang
+          command -v llvm-dlltool
+          command -v ld.lld
           bison --version
           mkdir -p wine/build-macos
           cd wine/build-macos
