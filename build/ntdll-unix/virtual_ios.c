@@ -6520,6 +6520,29 @@ static int ios_exe_win_small_fixed(void)
     return enabled;
 }
 
+/*
+ * Diagnostic / compatibility A-B switch for a small relocatable image whose
+ * preferred base is exactly the start of the executable window.
+ *
+ * Default OFF: preserve Madeira's current policy, which keeps the 128 MB
+ * executable window for a later fixed-base image.
+ *
+ * When MADEIRA_EXE_WINDOW_SMALL_RELOC=1, a small relocatable image may claim
+ * the window only when its requested base is exactly ios_exe_win_base.
+ * This is intentionally narrower than disabling the window globally.
+ */
+static int ios_exe_win_small_reloc(void)
+{
+    static int enabled = -1;
+
+    if (enabled < 0)
+    {
+        const char *e = getenv( "MADEIRA_EXE_WINDOW_SMALL_RELOC" );
+        enabled = e && e[0] && e[0] != '0';
+    }
+    return enabled;
+}
+
 /* Returns 1 if the reservation was released for this request. */
 static int ios_exe_win_claim( const void *addr, size_t size )
 {
@@ -6539,7 +6562,8 @@ static int ios_exe_win_claim( const void *addr, size_t size )
                      "(MADEIRA_EXE_WINDOW_SMALL_FIXED=0 refuses it as before)\n",
                      addr, (unsigned long)size );
     }
-    else if (size < 64u * 1024u * 1024u)
+    else if (size < 64u * 1024u * 1024u &&
+             !(a == ios_exe_win_base && ios_exe_win_small_reloc()))
     {
         static int small_n;
         if (small_n++ < 8)
@@ -6547,6 +6571,14 @@ static int ios_exe_win_claim( const void *addr, size_t size )
                      "a relocatable image sharing the default ImageBase must not starve the "
                      "fixed-base one\n", addr, (unsigned long)size );
         return 0;
+    }
+    else if (size < 64u * 1024u * 1024u)
+    {
+        static int reloc_n;
+        if (reloc_n++ < 8)
+            dprintf( 2, "[exe-window-test] small relocatable image %p+%#lx gets the exact-base "
+                     "window because MADEIRA_EXE_WINDOW_SMALL_RELOC=1\n",
+                     addr, (unsigned long)size );
     }
     if (ios_exe_win_state != 1)
     {
@@ -12362,8 +12394,14 @@ static inline int mprotect_exec( void *base, size_t size, int unix_prot )
                     (unsigned long)(offset + alloc_size), (unsigned long)jit_pool_size,
                     (unsigned long)tramp_prealloc);
 
+            static unsigned jit_phase_images;
+            unsigned trace_phase = (++jit_phase_images <= 8);
             ios_jit_verify_text_exec( ios_pe_module_name( image_base, image_size ),
                                       (char *)jit_rx_base + offset, image_size );
+            if (trace_phase)
+                dprintf( 2, "[jit-phase] copy-verified image=%p+0x%lx pool=%p\n",
+                         image_base, (unsigned long)image_size,
+                         (char *)jit_rx_base + offset );
 
             /* task #34 [share-probe]: DEFAULT-OFF (set MADEIRA_SHARE_PROBE=1).
              * ml79: running it inline here (pre-detach, on explorer's boot
@@ -12529,6 +12567,8 @@ static inline int mprotect_exec( void *base, size_t size, int unix_prot )
                 ERR("iOS JIT: NOT marking jit %p+0x%lx as EC (no .hexpthk section, pure x86_64)\n",
                     (char *)jit_rx_base + offset, (unsigned long)image_size);
             }
+            if (trace_phase)
+                dprintf( 2, "[jit-phase] classification-ok image=%p\n", image_base );
 
             /* Make data sections in JIT pool writable by remapping from RW view.
              * Parse PE section headers to find non-executable sections. */
@@ -12633,6 +12673,9 @@ static inline int mprotect_exec( void *base, size_t size, int unix_prot )
                     }
                 }
 
+                if (trace_phase)
+                    dprintf( 2, "[jit-phase] data-prot-ok image=%p\n", image_base );
+
                 /* Apply DIR64 relocations to JIT pool copy.
                  * The unix-side mapping has UNRELOCATED data (still at PE ImageBase).
                  * Wine only relocates the NT-side (PE) view via map_image_into_view,
@@ -12725,6 +12768,9 @@ static inline int mprotect_exec( void *base, size_t size, int unix_prot )
                     }
                 }
 
+                if (trace_phase)
+                    dprintf( 2, "[jit-phase] reloc-ok image=%p\n", image_base );
+
                 /* Patch x18 references in .text → TPIDR_EL0 trampolines.
                  * Allocate trampoline space right after the PE image in the JIT pool.
                  *
@@ -12816,6 +12862,8 @@ static inline int mprotect_exec( void *base, size_t size, int unix_prot )
                     }
                 }
                 x18_patch_done: ;
+                if (trace_phase)
+                    dprintf( 2, "[jit-phase] x18-ok image=%p\n", image_base );
             }
 
             /* ml957: honour a requested PROT_WRITE on the backing.
@@ -12882,6 +12930,9 @@ static inline int mprotect_exec( void *base, size_t size, int unix_prot )
                 /* Pure code section: leave the backing read-only, as before. */
                 mprotect( base, size, PROT_READ );
             }
+            if (trace_phase)
+                dprintf( 2, "[jit-phase] done image=%p request=%p+0x%lx\n",
+                         image_base, base, (unsigned long)size );
             return 0;
         }
     }
