@@ -1,0 +1,46 @@
+name: Madeira fresh-build preflight
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/cod-1938090-uctrbase-launch-diagnostics
+jobs:
+  preflight:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+      - name: Check source tree and required generated inputs
+        shell: bash
+        run: |
+          set -uo pipefail
+          echo "## Madeira build input audit" >> "$GITHUB_STEP_SUMMARY"
+          missing=0
+          for path in \
+            FEX/CMakeLists.txt \
+            wine/configure.ac \
+            dxmt/meson.build \
+            madeira-dock \
+            app/Madeira.xcodeproj/project.pbxproj \
+            toolchains/llvm-mingw-20260421-ucrt-macos-universal \
+            toolchains/llvm-ios-build \
+            app/Madeira/x86_64-vcruntime \
+            app/Madeira/libdxmt_combined.a \
+            app/Madeira/libmadeira_rppairing.a; do
+            if test -e "$path"; then
+              printf 'PRESENT %s\n' "$path"
+              echo "- PASS: \`$path\`" >> "$GITHUB_STEP_SUMMARY"
+            else
+              printf 'MISSING %s\n' "$path"
+              echo "- BLOCKED: \`$path\`" >> "$GITHUB_STEP_SUMMARY"
+              missing=$((missing+1))
+            fi
+          done
+          xcodebuild -version
+          if test "$missing" -gt 0; then
+            echo "Preflight failed: $missing required source/generated inputs missing. Do not report an IPA build." >&2
+            exit 1
+          fi
+          echo "All checked inputs present. This is NOT a compiled or device-verified IPA." >> "$GITHUB_STEP_SUMMARY"
