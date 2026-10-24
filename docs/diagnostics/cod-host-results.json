@@ -1,0 +1,563 @@
+{
+  "started_at": "2026-10-24T04:45:17.176672+00:00",
+  "python_version": "3.12.14",
+  "platform": "linux",
+  "checks": [
+    {
+      "name": "check-arm64ec-bootstrap.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-arm64ec-bootstrap.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.129,
+      "log": "check-arm64ec-bootstrap.log"
+    },
+    {
+      "name": "check-audio-downmix.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-audio-downmix.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.227,
+      "log": "check-audio-downmix.log"
+    },
+    {
+      "name": "check-audio-wow64.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-audio-wow64.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.148,
+      "log": "check-audio-wow64.log"
+    },
+    {
+      "name": "check-cfg-early-docs.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-cfg-early-docs.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.141,
+      "log": "check-cfg-early-docs.log"
+    },
+    {
+      "name": "check-config-catalog.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-config-catalog.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 6.851,
+      "log": "check-config-catalog.log"
+    },
+    {
+      "name": "check-control-presets.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-control-presets.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.054,
+      "log": "check-control-presets.log"
+    },
+    {
+      "name": "check-d3d9-splitlock.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-d3d9-splitlock.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 1.533,
+      "log": "check-d3d9-splitlock.log"
+    },
+    {
+      "name": "check-d9-upload-commit.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-d9-upload-commit.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 1.9,
+      "log": "check-d9-upload-commit.log"
+    },
+    {
+      "name": "check-dock-components.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-dock-components.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.048,
+      "log": "check-dock-components.log"
+    },
+    {
+      "name": "check-dock-contract.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-dock-contract.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.14,
+      "log": "check-dock-contract.log"
+    },
+    {
+      "name": "check-dock-gdi-section.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-dock-gdi-section.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.139,
+      "log": "check-dock-gdi-section.log"
+    },
+    {
+      "name": "check-dock-installers.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-dock-installers.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.055,
+      "log": "check-dock-installers.log"
+    },
+    {
+      "name": "check-dock-path.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-dock-path.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.048,
+      "log": "check-dock-path.log"
+    },
+    {
+      "name": "check-dock-report.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-dock-report.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.053,
+      "log": "check-dock-report.log"
+    },
+    {
+      "name": "check-dock-start-screen.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-dock-start-screen.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.052,
+      "log": "check-dock-start-screen.log"
+    },
+    {
+      "name": "check-fastsync.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-fastsync.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 38.023,
+      "log": "check-fastsync.log"
+    },
+    {
+      "name": "check-filtering-cap.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-filtering-cap.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 1.329,
+      "log": "check-filtering-cap.log"
+    },
+    {
+      "name": "check-frontend.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-frontend.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.082,
+      "log": "check-frontend.log"
+    },
+    {
+      "name": "check-gamepad.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-gamepad.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.212,
+      "log": "check-gamepad.log"
+    },
+    {
+      "name": "check-hardware-input.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-hardware-input.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.047,
+      "log": "check-hardware-input.log"
+    },
+    {
+      "name": "check-image-retire.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-image-retire.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.256,
+      "log": "check-image-retire.log"
+    },
+    {
+      "name": "check-jit-method.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-jit-method.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.047,
+      "log": "check-jit-method.log"
+    },
+    {
+      "name": "check-jit-network.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-jit-network.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.059,
+      "log": "check-jit-network.log"
+    },
+    {
+      "name": "check-jit-pairing.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-jit-pairing.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.054,
+      "log": "check-jit-pairing.log"
+    },
+    {
+      "name": "check-launch-routing.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-launch-routing.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.23,
+      "log": "check-launch-routing.log"
+    },
+    {
+      "name": "check-lazy-windows.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-lazy-windows.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 3.427,
+      "log": "check-lazy-windows.log"
+    },
+    {
+      "name": "check-library-api.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-library-api.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.042,
+      "log": "check-library-api.log"
+    },
+    {
+      "name": "check-library-sections.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-library-sections.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.03,
+      "log": "check-library-sections.log"
+    },
+    {
+      "name": "check-nav-keys.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-nav-keys.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.097,
+      "log": "check-nav-keys.log"
+    },
+    {
+      "name": "check-nsi-network.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-nsi-network.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 1.803,
+      "log": "check-nsi-network.log"
+    },
+    {
+      "name": "check-onboarding.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-onboarding.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.052,
+      "log": "check-onboarding.log"
+    },
+    {
+      "name": "check-readonly-link.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-readonly-link.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.189,
+      "log": "check-readonly-link.log"
+    },
+    {
+      "name": "check-runtime-settings.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-runtime-settings.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.046,
+      "log": "check-runtime-settings.log"
+    },
+    {
+      "name": "check-scene-batching.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-scene-batching.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.977,
+      "log": "check-scene-batching.log"
+    },
+    {
+      "name": "check-section-abort.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-section-abort.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.341,
+      "log": "check-section-abort.log"
+    },
+    {
+      "name": "check-small-va-band.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-small-va-band.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.216,
+      "log": "check-small-va-band.log"
+    },
+    {
+      "name": "check-steam-cloud.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-steam-cloud.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.041,
+      "log": "check-steam-cloud.log"
+    },
+    {
+      "name": "check-steam-games.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-steam-games.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.048,
+      "log": "check-steam-games.log"
+    },
+    {
+      "name": "check-steam-library.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-steam-library.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.127,
+      "log": "check-steam-library.log"
+    },
+    {
+      "name": "check-steam-signin-native.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-steam-signin-native.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.053,
+      "log": "check-steam-signin-native.log"
+    },
+    {
+      "name": "check-swap-coverage.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-swap-coverage.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.337,
+      "log": "check-swap-coverage.log"
+    },
+    {
+      "name": "check-touch-gamepad.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-touch-gamepad.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.045,
+      "log": "check-touch-gamepad.log"
+    },
+    {
+      "name": "check-unixlib-binder.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-unixlib-binder.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.169,
+      "log": "check-unixlib-binder.log"
+    },
+    {
+      "name": "check-wg-parser.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-wg-parser.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 3.959,
+      "log": "check-wg-parser.log"
+    },
+    {
+      "name": "check-win32u-zero-bits.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-win32u-zero-bits.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.147,
+      "log": "check-win32u-zero-bits.log"
+    },
+    {
+      "name": "check-wma-decoder.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-wma-decoder.py"
+      ],
+      "exit_code": 1,
+      "duration_seconds": 0.041,
+      "log": "check-wma-decoder.log"
+    },
+    {
+      "name": "check-wow-context.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-wow-context.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.082,
+      "log": "check-wow-context.log"
+    },
+    {
+      "name": "check-wow-cpu-area.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-wow-cpu-area.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.289,
+      "log": "check-wow-cpu-area.log"
+    },
+    {
+      "name": "check-wow-sweep.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/check-wow-sweep.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.86,
+      "log": "check-wow-sweep.log"
+    },
+    {
+      "name": "test-validate-ipa.py",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-u",
+        "/workspace/madeira/tests/host/test-validate-ipa.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.197,
+      "log": "test-validate-ipa.log"
+    }
+  ],
+  "summary": {
+    "total": 50,
+    "passed": 30,
+    "failed": 20
+  },
+  "finished_at": "2026-10-24T04:46:22.679164+00:00"
+}
