@@ -52,7 +52,7 @@ media() {
 
 headers() {
     mkdir -p wine/build-macos wine/build-arm64ec
-    (cd wine/build-macos && ../configure --without-x --disable-tests --enable-winegstreamer)
+    (cd wine/build-macos && ../configure --enable-win64 --without-x --disable-tests --enable-winegstreamer)
     # makedep emits include/all for ALL generated headers. `make include` is
     # a no-op because include is an existing directory, and a partial hand-picked
     # list omitted transitive headers such as docobj.h in previous CI attempts.
@@ -113,8 +113,8 @@ pairing() {
 
 llvm() {
     if [ ! -d toolchains/llvm-project/.git ]; then
-        git clone --filter=blob:none --no-checkout https://github.com/llvm/llvm-project.git toolchains/llvm-project
-        git -C toolchains/llvm-project checkout "$LLVM_REV"
+        git clone --depth 1 --branch llvmorg-15.0.7 --filter=blob:none \
+            https://github.com/llvm/llvm-project.git toolchains/llvm-project
     fi
     case "$(git -C toolchains/llvm-project rev-parse HEAD)" in
         "$LLVM_REV"*) ;;
@@ -164,37 +164,22 @@ graphics() {
 dock() { bash build/madeira-dock/build.sh; require app/Madeira/arm64ec-windows/dockhost.exe; }
 
 vcruntime() {
-    # Microsoft DLLs are an external, unmodified input (tools/fetch-vcruntime.md).
-    # CI accepts a private archive URL if its runner cannot extract the public
-    # redist layout. No replacement DLLs or empty runtime directory are created.
+    # Microsoft DLLs remain byte-for-byte as shipped. The current official
+    # redist may omit deprecated VCAMP/VCCORLIB components; the core three
+    # DLLs are required and every available signed runtime is retained.
     if [ -n "${MADEIRA_VCRUNTIME_ARCHIVE_URL:-}" ]; then
         mkdir -p app/Madeira/x86_64-vcruntime
         curl -fL --retry 3 "$MADEIRA_VCRUNTIME_ARCHIVE_URL" -o "$OUT/vcruntime.zip"
         unzip -jo "$OUT/vcruntime.zip" '*.dll' -d app/Madeira/x86_64-vcruntime
         rm "$OUT/vcruntime.zip"
+    elif [ ! -s app/Madeira/x86_64-vcruntime/vcruntime140.dll ]; then
+        curl -fL --retry 3 https://aka.ms/vs/17/release/vc_redist.x64.exe -o "$OUT/VC_redist.x64.exe"
+        shasum -a 256 "$OUT/VC_redist.x64.exe" > "$OUT/vcredist-installer-sha256.txt"
+        python3 build/ci/stage-vcruntime.py app/Madeira/x86_64-vcruntime \
+            --installer "$OUT/VC_redist.x64.exe" --report "$OUT/vcruntime-sha256.json"
     fi
-    python3 - <<'PY'
-from pathlib import Path
-import hashlib, json, struct
-root = Path('app/Madeira/x86_64-vcruntime')
-names = '''concrt140.dll msvcp140.dll msvcp140_1.dll msvcp140_2.dll
-msvcp140_atomic_wait.dll msvcp140_codecvt_ids.dll vcamp140.dll vccorlib140.dll
-vcomp140.dll vcruntime140.dll vcruntime140_1.dll vcruntime140_threads.dll'''.split()
-result = {}
-for name in names:
-    p = root / name
-    if not p.is_file():
-        raise SystemExit(f'Missing unmodified Microsoft input {p}; see tools/fetch-vcruntime.md or set MADEIRA_VCRUNTIME_ARCHIVE_URL')
-    d = p.read_bytes()
-    pe = struct.unpack_from('<I', d, 0x3c)[0]
-    if d[:2] != b'MZ' or d[pe:pe+4] != b'PE\0\0' or struct.unpack_from('<H', d, pe+4)[0] != 0x8664:
-        raise SystemExit(f'Not an x64 PE runtime: {p}')
-    off, size = struct.unpack_from('<II', d, pe+24+112+4*8)
-    if not size or off+size > len(d):
-        raise SystemExit(f'Authenticode payload missing or truncated: {p}')
-    result[name] = hashlib.sha256(d).hexdigest()
-Path('build/ci-output/vcruntime-sha256.json').write_text(json.dumps(result, indent=2)+'\n')
-PY
+    python3 build/ci/stage-vcruntime.py app/Madeira/x86_64-vcruntime \
+        --report "$OUT/vcruntime-sha256.json"
 }
 
 app() {

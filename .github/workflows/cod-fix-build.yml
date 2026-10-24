@@ -5,7 +5,7 @@ on:
   push:
     branches: ['fix/cod-1938090-ipa-*']
     paths:
-      - '.github/workflows/cod-test-ipa.yml'
+      - '.github/workflows/cod-fix-build.yml'
       - 'build/**'
       - 'app/**'
       - 'tools/validate-ipa.py'

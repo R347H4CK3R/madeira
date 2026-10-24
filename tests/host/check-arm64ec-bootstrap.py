@@ -5,7 +5,7 @@ The supplied COD log executes x64 ucrtbase DllMain bytes before FEX has a
 thread state. This test compiles the pinned production load_arm64ec_module
 and search_dll_file functions with host shims for NT file/registry/init APIs.
 The file shim supplies distinct local-x64 and system-ARM64EC CRT fixtures.
-It checks the bootstrap's chosen dependency search, normal app lookup, and
+It checks the bootstrap's chosen dependency search, normal app path order, and
 failure when the native CRT is absent. It does not emulate FEX or an iPhone.
 
 By default, apply the top-level Wine patch to a temporary source copy; the
@@ -156,7 +156,7 @@ int main(void)
     native_farm = native_system = local_present = 1; selected = 0;
     NTSTATUS status = search_dll_file(NULL, L"ucrtbase.dll", &nt_name, &wm, &mapping, &info, &id);
     expect(!status && selected == 1,
-           "ordinary application search still selects its local CRT");
+           "ordinary application search keeps local-first path ordering");
     RtlFreeUnicodeString(&nt_name);
     return failures ? 1 : 0;
 }
@@ -173,11 +173,17 @@ def main():
     source = ROOT / "wine/dlls/ntdll/loader.c"
     if not source.exists():
         sys.exit("FAIL: the pinned Wine submodule is required")
+    original = subprocess.run(["git", "-C", str(ROOT / "wine"), "show",
+                               "HEAD:dlls/ntdll/loader.c"], capture_output=True)
+    if original.returncode:
+        sys.exit("FAIL: cannot read the pinned Wine loader source")
     with tempfile.TemporaryDirectory(prefix="madeira-ec-bootstrap-") as temp:
         directory = Path(temp)
         copied = directory / "dlls/ntdll/loader.c"
         copied.parent.mkdir(parents=True)
-        copied.write_bytes(source.read_bytes())
+        # Build scripts may already have applied the patch in their checkout.
+        # Start from the pinned object so RED and GREEN stay reproducible there.
+        copied.write_bytes(original.stdout)
         if not args.unpatched:
             if not PATCH.exists():
                 sys.exit("FAIL: ARM64EC bootstrap patch is missing")
