@@ -108,6 +108,10 @@ jobs:
             toolchains/ffmpeg-ios
             build/gnutls-ios/obj
             build/ffmpeg/obj
+            app/Madeira/libgmp.a
+            app/Madeira/libnettle.a
+            app/Madeira/libhogweed.a
+            app/Madeira/libgnutls.a
             build/freetype-ios/build
             app/Madeira/libavformat.a
             app/Madeira/libavcodec.a
@@ -125,6 +129,10 @@ jobs:
             toolchains/ffmpeg-ios
             build/gnutls-ios/obj
             build/ffmpeg/obj
+            app/Madeira/libgmp.a
+            app/Madeira/libnettle.a
+            app/Madeira/libhogweed.a
+            app/Madeira/libgnutls.a
             build/freetype-ios/build
             app/Madeira/libavformat.a
             app/Madeira/libavcodec.a
@@ -178,6 +186,8 @@ jobs:
             build/ci-output/Madeira-COD-Fix-Test.ipa
             build/ci-output/Madeira-COD-Fix-Test.ipa.sha256
             build/ci-output/ipa-validation.json
+            build/ci-output/Requested-entitlements.plist
+            build/ci-output/UNSIGNED.txt
           if-no-files-found: error
           retention-days: 14
       - uses: actions/upload-artifact@v4
@@ -188,6 +198,7 @@ jobs:
             build/ci-output/logs
             build/ci-output/*.txt
             build/ci-output/*.json
+            build/ci-output/*.patch
             build/ci-output/*.xcresult
             build/ntdll-unix/obj/*.err
             build/wineserver/obj/**/err-*.txt

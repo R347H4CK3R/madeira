@@ -43,6 +43,9 @@ setup() {
 
 media() {
     bash build/gnutls-ios/build.sh
+    for lib in gmp nettle hogweed gnutls; do
+        cp "toolchains/gnutls-ios/lib/lib${lib}.a" "app/Madeira/lib${lib}.a"
+    done
     bash build/ffmpeg/build.sh
     bash build/freetype-ios/build.sh
     require toolchains/gnutls-ios/include/gnutls/gnutls.h \
@@ -183,6 +186,18 @@ vcruntime() {
 }
 
 app() {
+    # Check every linked static archive instead of trusting filenames/cache entries.
+    for archive in app/Madeira/lib{gmp,nettle,hogweed,gnutls,avformat,avcodec,swresample,avutil,ntdll_unix,wineserver,win32u_unix,dxmt_combined,madeira_rppairing}.a \
+        FEX/build-ios/FEXCore/Source/lib{FEXCore,FEXCore_Base,JemallocLibs}.a \
+        FEX/build-ios/External/{fmt/libfmt,cephes/libcephes_128bit,SoftFloat-3e/libsoftfloat_3e,xxhash/cmake_unofficial/libxxhash}.a; do
+        require "$archive"
+        architectures="$(xcrun lipo -archs "$archive")"
+        if [ "$architectures" != arm64 ]; then
+            echo "Expected arm64 iOS archive, found $architectures: $archive" >&2
+            return 1
+        fi
+        printf '%s %s\n' "$architectures" "$archive" >> "$OUT/static-library-architectures.txt"
+    done
     bash build/stage-licenses.sh
     xcodebuild -project app/Madeira.xcodeproj -scheme Madeira \
         -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' \
@@ -204,8 +219,17 @@ package() {
     mkdir -p "$OUT/package/Payload"
     ditto "$app_path" "$OUT/package/Payload/Madeira.app"
     (cd "$OUT/package" && zip -qry "$OUT/Madeira-COD-Fix-Test.ipa" Payload)
-    python3 tools/validate-ipa.py "$OUT/Madeira-COD-Fix-Test.ipa" --output "$OUT/ipa-validation.json"
+    python3 tools/validate-ipa.py "$OUT/Madeira-COD-Fix-Test.ipa" --source-root "$R" --output "$OUT/ipa-validation.json"
     shasum -a 256 "$OUT/Madeira-COD-Fix-Test.ipa" > "$OUT/Madeira-COD-Fix-Test.ipa.sha256"
+    cp app/Madeira/Madeira.entitlements "$OUT/Requested-entitlements.plist"
+    cat > "$OUT/UNSIGNED.txt" <<'NOTICE'
+This is an unsigned Debug iOS device build. It requires compatible signing and
+provisioning before sideloading. Re-sign the application, its MadeiraJITHelper
+extension, embedded StikJIT framework and Metal converter consistently.
+Requested-entitlements.plist records requests, not entitlements granted by Apple.
+JIT authorization must still succeed on the device. Extra memory/address-space
+entitlements are not guaranteed. No iPhone or COD launch test was performed by CI.
+NOTICE
 }
 
 case "$STAGE" in
