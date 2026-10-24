@@ -1,0 +1,1615 @@
+[
+  {
+    "run_id": 37568055319,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37568055319",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "e3ea2dcb5d180771e3a9da14bd1d62da008d6c49",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T03:43:13Z",
+    "conclusion": "failure",
+    "title": "Install generated IDL headers into host Wine include tree",
+    "job_id": 112620210778,
+    "failed_steps": [
+      "Build iOS ntdll unix library"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory",
+      "/Users/runner/work/madeira/madeira/wine/dlls/winegstreamer/unixlib.h:27:10: fatal error: 'wtypes.h' file not found",
+      "/Users/runner/work/madeira/madeira/wine/dlls/dwrite/unixlib.h:22:10: fatal error: 'dwrite.h' file not found"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "'wtypes.h' file not found; 'dwrite.h' file not found"
+  },
+  {
+    "run_id": 37567269834,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37567269834",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "6c5edba22db0ed87df525173691d48b82f4df364",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T03:33:04Z",
+    "conclusion": "failure",
+    "title": "Build the widl executable target explicitly",
+    "job_id": 112617734623,
+    "failed_steps": [
+      "Build iOS ntdll unix library"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory",
+      "/Users/runner/work/madeira/madeira/wine/dlls/winegstreamer/unixlib.h:27:10: fatal error: 'wtypes.h' file not found",
+      "/Users/runner/work/madeira/madeira/wine/dlls/dwrite/unixlib.h:22:10: fatal error: 'dwrite.h' file not found"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "'wtypes.h' file not found; 'dwrite.h' file not found"
+  },
+  {
+    "run_id": 37566608964,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37566608964",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "2d2bccd9229f61f044065cdc5721030de1dd9766",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T03:24:36Z",
+    "conclusion": "failure",
+    "title": "Build Wine widl before generating IDL headers",
+    "job_id": 112615657098,
+    "failed_steps": [
+      "Configure Wine ARM64EC headers"
+    ],
+    "errors": [],
+    "tail": [
+      "configure: Finished.  Do 'make' to compile Wine.",
+      "",
+      "make: Nothing to be done for `include'.",
+      "make: Nothing to be done for `tools/widl'.",
+      "##[error]Process completed with exit code 1."
+    ],
+    "artifacts": [],
+    "reason": "make tools/widl was a no-op directory target; WIDL executable assertion failed."
+  },
+  {
+    "run_id": 37565989341,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37565989341",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "c72a6e5b3376a2565c5ffdb6a790a23c54b05c6b",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T03:16:32Z",
+    "conclusion": "failure",
+    "title": "Generate required Wine IDL headers with widl",
+    "job_id": 112613697079,
+    "failed_steps": [
+      "Configure Wine ARM64EC headers"
+    ],
+    "errors": [
+      "/Users/runner/work/_temp/91bb129f-98d4-4e3d-acca-62e8cd1bfe84.sh: line 7: tools/widl/widl: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "WIDL executable not built before direct invocation."
+  },
+  {
+    "run_id": 37565232722,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37565232722",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "8f890bfc383bb67e71ff7651653bd1fe78e04f25",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T03:06:56Z",
+    "conclusion": "failure",
+    "title": "Generate Wine module IDL headers through module targets",
+    "job_id": 112611296739,
+    "failed_steps": [
+      "Build iOS ntdll unix library"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory",
+      "/Users/runner/work/madeira/madeira/wine/dlls/winegstreamer/unixlib.h:27:10: fatal error: 'wtypes.h' file not found",
+      "/Users/runner/work/madeira/madeira/wine/dlls/dwrite/unixlib.h:22:10: fatal error: 'dwrite.h' file not found"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "'wtypes.h' file not found; 'dwrite.h' file not found"
+  },
+  {
+    "run_id": 37564561769,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37564561769",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "0ef52bed5ec47d9edbd8b75fc69b53042eda928f",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T02:58:45Z",
+    "conclusion": "failure",
+    "title": "Generate required Wine IDL headers explicitly",
+    "job_id": 112609221396,
+    "failed_steps": [
+      "Configure Wine ARM64EC headers"
+    ],
+    "errors": [
+      "make: *** No rule to make target `include/wine/windows/wtypes.h'.  Stop."
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Requested nonexistent generated target include/wine/windows/wtypes.h."
+  },
+  {
+    "run_id": 37562770672,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37562770672",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "66b227a907018e8288ac40f4257c96dab218770e",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T02:36:17Z",
+    "conclusion": "failure",
+    "title": "Use generated Wine Windows headers for unixlibs",
+    "job_id": 112603579930,
+    "failed_steps": [
+      "Build iOS ntdll unix library"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory",
+      "/Users/runner/work/madeira/madeira/wine/dlls/winegstreamer/unixlib.h:27:10: fatal error: 'wtypes.h' file not found",
+      "/Users/runner/work/madeira/madeira/wine/dlls/dwrite/unixlib.h:22:10: fatal error: 'dwrite.h' file not found"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "'wtypes.h' file not found; 'dwrite.h' file not found"
+  },
+  {
+    "run_id": 37562063514,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37562063514",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "b30dbe864d4fc5de3be59df9001e5da93f9894c4",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T02:27:26Z",
+    "conclusion": "failure",
+    "title": "Remove incorrect generated wtypes header check",
+    "job_id": 112601338075,
+    "failed_steps": [
+      "Build iOS ntdll unix library"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory",
+      "/Users/runner/work/madeira/madeira/wine/dlls/winegstreamer/unixlib.h:27:10: fatal error: 'wtypes.h' file not found",
+      "/Users/runner/work/madeira/madeira/wine/dlls/dwrite/unixlib.h:22:10: fatal error: 'dwrite.h' file not found"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "'wtypes.h' file not found; 'dwrite.h' file not found"
+  },
+  {
+    "run_id": 37562052780,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37562052780",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "24f66cddc663a7ddc759e78251044afcd922b6b5",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T02:27:18Z",
+    "conclusion": "failure",
+    "title": "Use Wine source Windows headers for unixlib compilation",
+    "job_id": 112601302855,
+    "failed_steps": [
+      "Configure Wine ARM64EC headers"
+    ],
+    "errors": [
+      "\u001b[36;1mtest -f include/wtypes.h || { echo 'wtypes.h was not generated'; find . -name wtypes.h -print; exit 1; }\u001b[0m",
+      "wtypes.h was not generated"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "make include no-op; asserted generated wtypes.h absent."
+  },
+  {
+    "run_id": 37560936922,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37560936922",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "3094d7880d1b307362aa341875bc0f8b83e900ec",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T02:13:20Z",
+    "conclusion": "failure",
+    "title": "Verify generated Wine wtypes header",
+    "job_id": 112597793185,
+    "failed_steps": [
+      "Configure Wine ARM64EC headers"
+    ],
+    "errors": [
+      "\u001b[36;1mtest -f include/wtypes.h || { echo 'wtypes.h was not generated'; find . -name wtypes.h -print; exit 1; }\u001b[0m",
+      "wtypes.h was not generated"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "make include no-op; asserted generated wtypes.h absent."
+  },
+  {
+    "run_id": 37560905935,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37560905935",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "e9dc1246cb8e53cb679192b89c25cccca3aef990",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T02:12:59Z",
+    "conclusion": "failure",
+    "title": "Build FreeType dependency for dwrite unixlib",
+    "job_id": 112597701173,
+    "failed_steps": [
+      "Build iOS ntdll unix library"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory",
+      "/Users/runner/work/madeira/madeira/wine/dlls/winegstreamer/unixlib.h:27:10: fatal error: 'wtypes.h' file not found",
+      "/Users/runner/work/madeira/madeira/wine/dlls/dwrite/unixlib.h:22:10: fatal error: 'dwrite.h' file not found"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "'wtypes.h' file not found; 'dwrite.h' file not found"
+  },
+  {
+    "run_id": 37560787692,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37560787692",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "12ae2ed44b9a6089136d6c04f9b9aa077958270a",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T02:11:32Z",
+    "conclusion": "failure",
+    "title": "Fix iOS SDK rusage_info_v6 compatibility",
+    "job_id": 112597324457,
+    "failed_steps": [
+      "Build iOS ntdll unix library"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory",
+      "/Users/runner/work/madeira/madeira/wine/dlls/winegstreamer/unixlib.h:27:10: fatal error: 'wtypes.h' file not found",
+      "/Users/runner/work/madeira/madeira/wine/dlls/dwrite/freetype.c:31:10: fatal error: 'ft2build.h' file not found"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "'wtypes.h' file not found; 'ft2build.h' file not found"
+  },
+  {
+    "run_id": 37559932757,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37559932757",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "0efa4d3ca43d5a3cdae1cf1de922490ad6f974bb",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T02:01:06Z",
+    "conclusion": "failure",
+    "title": "Show failed ntdll compiler output",
+    "job_id": 112594664051,
+    "failed_steps": [
+      "Build iOS ntdll unix library"
+    ],
+    "errors": [
+      "Failed: dwrite_unixlib winegstreamer_unixlib server",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/server.o: No such file or directory",
+      "/Users/runner/work/madeira/madeira/build/ntdll-unix/server_ios.c:1586:90: error: no member named 'ri_page_wait_time_mach' in 'struct rusage_info_v6'",
+      "/Users/runner/work/madeira/madeira/build/ntdll-unix/server_ios.c:1586:119: error: no member named 'ri_page_wait_time_mach' in 'struct rusage_info_v6'",
+      "/Users/runner/work/madeira/madeira/wine/dlls/winegstreamer/unixlib.h:27:10: fatal error: 'wtypes.h' file not found",
+      "/Users/runner/work/madeira/madeira/wine/dlls/dwrite/freetype.c:31:10: fatal error: 'ft2build.h' file not found"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "iOS SDK rusage_info_v6 missing ri_page_wait_time_mach; also missing generated Wine/FreeType headers."
+  },
+  {
+    "run_id": 37558720571,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37558720571",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "3a654fd3fdec59e1e8e60e9941e293a3a66f51d0",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T01:46:05Z",
+    "conclusion": "failure",
+    "title": "Build missing iOS dependency prefixes and ARM64EC headers",
+    "job_id": 112590870508,
+    "failed_steps": [
+      "Build iOS ntdll unix library"
+    ],
+    "errors": [
+      "Results: 34 succeeded, 3 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib server",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/server.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib server; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37558391122,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37558391122",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "29eb97c936293c659125eb2282df9744558bfbfb",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T01:42:00Z",
+    "conclusion": "failure",
+    "title": "Fix malformed Wine configure shell block",
+    "job_id": 112589828812,
+    "failed_steps": [
+      "Build iOS ntdll unix library"
+    ],
+    "errors": [
+      "Results: 31 succeeded, 6 failed",
+      "Failed: bcrypt_unixlib secur32_unixlib dwrite_unixlib crypt32_unixlib winegstreamer_unixlib server",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/bcrypt_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/secur32_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/crypt32_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/server.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: bcrypt_unixlib secur32_unixlib dwrite_unixlib crypt32_unixlib winegstreamer_unixlib server; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37558081309,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37558081309",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "80060e0eef8a67f2d17c5433c1aef4bb2f27e8b2",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T01:38:10Z",
+    "conclusion": "failure",
+    "title": "Avoid GitHub API rate limit for llvm-mingw download",
+    "job_id": 112588848541,
+    "failed_steps": [
+      "Configure Wine host tree"
+    ],
+    "errors": [
+      "/Users/runner/work/_temp/86567c32-1247-4c80-b002-5e040c585b9e.sh: line 1: export: `-v': not a valid identifier",
+      "/Users/runner/work/_temp/86567c32-1247-4c80-b002-5e040c585b9e.sh: line 1: export: `aarch64-w64-mingw32-clangn': not a valid identifier",
+      "/Users/runner/work/_temp/86567c32-1247-4c80-b002-5e040c585b9e.sh: line 1: export: `llvm-dlltooln': not a valid identifier",
+      "/Users/runner/work/_temp/86567c32-1247-4c80-b002-5e040c585b9e.sh: line 1: export: `ld.lldn': not a valid identifier"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Literal \\\\n embedded in shell export block."
+  },
+  {
+    "run_id": 37557810548,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37557810548",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "8febfad06d92e3aa1ba70949a5144a2dedaf7024",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T01:34:50Z",
+    "conclusion": "failure",
+    "title": "Install pinned llvm-mingw for Wine ARM64EC",
+    "job_id": 112587982754,
+    "failed_steps": [
+      "Install pinned Madeira llvm-mingw"
+    ],
+    "errors": [
+      "HTTP 403: API rate limit exceeded for 13.105.220.5. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.) (https://api.github.com/repos/mstorsjo/llvm-mingw/releases/assets/401855787)"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Unauthenticated gh release download hit GitHub API rate limit."
+  },
+  {
+    "run_id": 37557797333,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37557797333",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "bca8a13a34e25b8f675864178741dbb1e34a1ec4",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T01:34:41Z",
+    "conclusion": "failure",
+    "title": "Prepare CI for pinned Madeira toolchain",
+    "job_id": 112587938479,
+    "failed_steps": [
+      "Configure Wine host tree"
+    ],
+    "errors": [
+      "configure: error: PE cross-compilation is required for aarch64, please install clang/llvm-dlltool/lld, or llvm-mingw."
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "aarch64 PE cross compiler not available to Wine configure."
+  },
+  {
+    "run_id": 37557388562,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37557388562",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "cc82fc3385ac9bb8920b022b4265045eafe22d3f",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T01:29:54Z",
+    "conclusion": "failure",
+    "title": "Install Wine PE cross-compilation toolchain",
+    "job_id": 112586659894,
+    "failed_steps": [
+      "Configure Wine host tree"
+    ],
+    "errors": [
+      "configure: error: PE cross-compilation is required for aarch64, please install clang/llvm-dlltool/lld, or llvm-mingw."
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "aarch64 PE cross compiler not available to Wine configure."
+  },
+  {
+    "run_id": 37553979600,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37553979600",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "559dad9d63e1405eb76d85fe298cc677b8eec0ca",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-07T00:49:36Z",
+    "conclusion": "failure",
+    "title": "Fix malformed Actions YAML and Bison PATH",
+    "job_id": 112575803364,
+    "failed_steps": [
+      "Configure Wine host tree"
+    ],
+    "errors": [
+      "configure: error: PE cross-compilation is required for aarch64, please install clang/llvm-dlltool/lld, or llvm-mingw."
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "aarch64 PE cross compiler not available to Wine configure."
+  },
+  {
+    "run_id": 37548576553,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37548576553",
+    "workflow": ".github/workflows/cod-fix-build.yml",
+    "branch": "cod-store-emulator-fix",
+    "sha": "00fd4c191f65e94e5dcc421cc7888d6c668234ac",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-06T23:48:36Z",
+    "conclusion": "failure",
+    "title": "Fix CI bison requirement",
+    "job_id": null,
+    "failed_steps": [],
+    "errors": [],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Invalid YAML: literal \\\\n embedded in run/name block (locally reproduced parser failure)."
+  },
+  {
+    "run_id": 37548024648,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37548024648",
+    "workflow": "COD ARM64EC fix build",
+    "branch": "cod-store-emulator-fix",
+    "sha": "388c1582d9ed953e7f6de7359fb6b09838f263c8",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-06T23:42:28Z",
+    "conclusion": "failure",
+    "title": "Add macOS workflow for COD ARM64EC fix",
+    "job_id": 112556635970,
+    "failed_steps": [
+      "Configure Wine host tree"
+    ],
+    "errors": [
+      "configure: error: Your bison version is too old. Please install bison version 3.0 or newer."
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Apple/system bison too old; Homebrew bison not first in PATH."
+  },
+  {
+    "run_id": 37177659866,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37177659866",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "75ff64dfbd9c3db4c7ec62b71bb42780f6853154",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T04:40:02Z",
+    "conclusion": "failure",
+    "title": "ci: checkpoint Wine support components and generate shell WIDL headers",
+    "job_id": 111363569372,
+    "failed_steps": [
+      "Build win32u"
+    ],
+    "errors": [
+      "Results: 37 succeeded, 0 failed",
+      "Results: 22 succeeded, 24 failed",
+      "Failed: class clipboard cursoricon d3dkmt dce defwnd driver hook imm input menu message opengl palette rawinput region scroll spy syscall sysparams systray vulkan window winstation",
+      "/Users/runner/work/madeira/madeira/wine/build-macos/include/exdisp.h:275:10: fatal error: 'docobj.h' file not found"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "'docobj.h' file not found"
+  },
+  {
+    "run_id": 37177214978,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37177214978",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "444fabc11319af09657d2eebe9acf06c7e8927e6",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T04:30:44Z",
+    "conclusion": "failure",
+    "title": "ci: checkpoint every expensive build stage",
+    "job_id": 111362231941,
+    "failed_steps": [
+      "Build Wine support libraries"
+    ],
+    "errors": [
+      "Results: 37 succeeded, 0 failed",
+      "Results: 22 succeeded, 24 failed",
+      "Failed: class clipboard cursoricon d3dkmt dce defwnd driver hook imm input menu message opengl palette rawinput region scroll spy syscall sysparams systray vulkan window winstation",
+      "/Users/runner/work/madeira/madeira/wine/include/shlguid.h:76:12: fatal error: 'exdisp.h' file not found"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "'exdisp.h' file not found"
+  },
+  {
+    "run_id": 37176954632,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37176954632",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "a215a9b72954f09b6b3bed54a0aa76238102c3bd",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T04:25:25Z",
+    "conclusion": "failure",
+    "title": "ci: generate complete native Wine header set for win32u",
+    "job_id": 111361458880,
+    "failed_steps": [
+      "Configure Wine generated headers"
+    ],
+    "errors": [],
+    "tail": [
+      "",
+      "configure: Finished.  Do 'make' to compile Wine.",
+      "",
+      "make: Nothing to be done for `include'.",
+      "##[error]Process completed with exit code 1."
+    ],
+    "artifacts": [],
+    "reason": "make include was a no-op; generated-header/flattened-symlink assertions failed."
+  },
+  {
+    "run_id": 37176524496,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37176524496",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "aab7a481575ac3d00995fb0b34242e83b857ef1e",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T04:16:24Z",
+    "conclusion": "failure",
+    "title": "ci: generate oaidl and persist successful Wine support stage",
+    "job_id": 111360153906,
+    "failed_steps": [
+      "Build Wine support libraries"
+    ],
+    "errors": [
+      "Results: 37 succeeded, 0 failed",
+      "Results: 22 succeeded, 24 failed",
+      "Failed: class clipboard cursoricon d3dkmt dce defwnd driver hook imm input menu message opengl palette rawinput region scroll spy syscall sysparams systray vulkan window winstation",
+      "/Users/runner/work/madeira/madeira/wine/include/ole2.h:27:10: fatal error: 'oleidl.h' file not found"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "'oleidl.h' file not found"
+  },
+  {
+    "run_id": 37175979685,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37175979685",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "eec6424c79a4b7dd5bcafbcd16fec9496ece2245",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T04:05:29Z",
+    "conclusion": "failure",
+    "title": "ci: generate win32u COM headers and build iOS freetype",
+    "job_id": 111358545146,
+    "failed_steps": [
+      "Build Wine support libraries"
+    ],
+    "errors": [
+      "Results: 37 succeeded, 0 failed",
+      "Results: 22 succeeded, 24 failed",
+      "Failed: class clipboard cursoricon d3dkmt dce defwnd driver hook imm input menu message opengl palette rawinput region scroll spy syscall sysparams systray vulkan window winstation",
+      "/Users/runner/work/madeira/madeira/wine/build-macos/include/propidl.h:56:10: fatal error: 'oaidl.h' file not found"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "'oaidl.h' file not found"
+  },
+  {
+    "run_id": 37175537261,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37175537261",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "e222e15410c39db49d3263ecb7f7fc2398600e00",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T03:56:57Z",
+    "conclusion": "failure",
+    "title": "ci: retain win32u failure diagnostics",
+    "job_id": 111357259739,
+    "failed_steps": [
+      "Build Wine support libraries"
+    ],
+    "errors": [
+      "Results: 37 succeeded, 0 failed",
+      "Results: 21 succeeded, 25 failed",
+      "Failed: class clipboard cursoricon d3dkmt dce defwnd driver freetype hook imm input menu message opengl palette rawinput region scroll spy syscall sysparams systray vulkan window winstation",
+      "/Users/runner/work/madeira/madeira/wine/include/objbase.h:514:10: fatal error: 'propidl.h' file not found",
+      "/Users/runner/work/madeira/madeira/wine/dlls/win32u/freetype.c:48:10: fatal error: 'ft2build.h' file not found"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "'propidl.h' file not found; 'ft2build.h' file not found"
+  },
+  {
+    "run_id": 37175532897,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37175532897",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "25beed95c03fe05f62f8c35a9d9b57dfcf7d129a",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T03:56:51Z",
+    "conclusion": "failure",
+    "title": "ci: expose win32u compiler root causes",
+    "job_id": 111357247551,
+    "failed_steps": [
+      "Build Wine support libraries"
+    ],
+    "errors": [
+      "Results: 37 succeeded, 0 failed",
+      "Results: 21 succeeded, 25 failed",
+      "Failed: class clipboard cursoricon d3dkmt dce defwnd driver freetype hook imm input menu message opengl palette rawinput region scroll spy syscall sysparams systray vulkan window winstation",
+      "/Users/runner/work/madeira/madeira/wine/include/objbase.h:514:10: fatal error: 'propidl.h' file not found",
+      "/Users/runner/work/madeira/madeira/wine/dlls/win32u/freetype.c:48:10: fatal error: 'ft2build.h' file not found"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "'propidl.h' file not found; 'ft2build.h' file not found"
+  },
+  {
+    "run_id": 37174534601,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37174534601",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "51ecf8facd3d82d04c05ffa766039526a7d62518",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T03:36:03Z",
+    "conclusion": "failure",
+    "title": "build: add reproducible wineserver base bootstrap",
+    "job_id": 111354298594,
+    "failed_steps": [
+      "Build Wine support libraries"
+    ],
+    "errors": [
+      "Results: 37 succeeded, 0 failed",
+      "Results: 21 succeeded, 25 failed",
+      "Failed: class clipboard cursoricon d3dkmt dce defwnd driver freetype hook imm input menu message opengl palette rawinput region scroll spy syscall sysparams systray vulkan window winstation"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: class clipboard cursoricon d3dkmt dce defwnd driver freetype hook imm input menu message opengl palette rawinput region scroll spy syscall sysparams systray vulkan window winstation; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37174528801,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37174528801",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "ecf86ed82aef3c0c01ab3f9651229e42cfbc475c",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T03:35:56Z",
+    "conclusion": "failure",
+    "title": "ci: bootstrap wineserver archive on clean runner",
+    "job_id": 111354281247,
+    "failed_steps": [
+      "Build Wine support libraries"
+    ],
+    "errors": [
+      "Results: 37 succeeded, 0 failed",
+      "bash: build/wineserver/bootstrap-base.sh: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Workflow called bootstrap-base.sh before script was added."
+  },
+  {
+    "run_id": 37174165350,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37174165350",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "ce74ce2e285310d0161942dfbd337c9c70a1ea35",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T03:28:17Z",
+    "conclusion": "failure",
+    "title": "ci: let Wine generate unixlib headers through module dependencies",
+    "job_id": 111353188185,
+    "failed_steps": [
+      "Build Wine support libraries"
+    ],
+    "errors": [
+      "Results: 37 succeeded, 0 failed",
+      "ERROR: No base libwineserver.a found"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "wineserver patch build requires an existing untracked base archive."
+  },
+  {
+    "run_id": 37174159191,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37174159191",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "4d342aa88e13e73ed592b080c28d808460fee6f8",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T03:28:09Z",
+    "conclusion": "failure",
+    "title": "build: use ARM64EC Wine headers for PE-facing unixlibs",
+    "job_id": 111353170039,
+    "failed_steps": [
+      "Build Wine iOS unix library with CSNZ diagnostic"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37173104356,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37173104356",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "ae741c36e1f071c59eeba195154a7d6ad451cf47",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T03:06:37Z",
+    "conclusion": "failure",
+    "title": "ci: generate COM base WIDL dependency and avoid duplicate PR runs",
+    "job_id": 111349947285,
+    "failed_steps": [
+      "Build Wine iOS unix library with CSNZ diagnostic"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37172426563,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37172426563",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "f322e470361eb1ac89dd604201efa2bb958de13f",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T02:53:31Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111347944850,
+    "failed_steps": [
+      "Build Wine iOS unix library with CSNZ diagnostic"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37172424556,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37172424556",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "f322e470361eb1ac89dd604201efa2bb958de13f",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T02:53:28Z",
+    "conclusion": "failure",
+    "title": "ci: generate required Wine WIDL headers explicitly",
+    "job_id": 111347938610,
+    "failed_steps": [
+      "Build Wine iOS unix library with CSNZ diagnostic"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37171941997,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37171941997",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "bb5911c822a7325c815e71d13834b2217ea71b9d",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T02:43:51Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111346501836,
+    "failed_steps": [
+      "Build Wine iOS unix library with CSNZ diagnostic"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37171940008,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37171940008",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "bb5911c822a7325c815e71d13834b2217ea71b9d",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T02:43:48Z",
+    "conclusion": "failure",
+    "title": "ci: remove obsolete ARM64EC flattened-header assertions",
+    "job_id": 111346495216,
+    "failed_steps": [
+      "Build Wine iOS unix library with CSNZ diagnostic"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37171186653,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37171186653",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "773e6ed173105fae3f23b9f3f3bc90154fc1baa6",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T02:29:08Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111344307060,
+    "failed_steps": [
+      "Configure Wine ARM64EC generated headers"
+    ],
+    "errors": [],
+    "tail": [
+      "",
+      "configure: Finished.  Do 'make' to compile Wine.",
+      "",
+      "make: Nothing to be done for `include'.",
+      "##[error]Process completed with exit code 1."
+    ],
+    "artifacts": [],
+    "reason": "make include was a no-op; generated-header/flattened-symlink assertions failed."
+  },
+  {
+    "run_id": 37171184679,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37171184679",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "773e6ed173105fae3f23b9f3f3bc90154fc1baa6",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T02:29:05Z",
+    "conclusion": "failure",
+    "title": "build: use native Wine generated headers for Unix libraries",
+    "job_id": 111344300749,
+    "failed_steps": [
+      "Configure Wine ARM64EC generated headers"
+    ],
+    "errors": [],
+    "tail": [
+      "",
+      "configure: Finished.  Do 'make' to compile Wine.",
+      "",
+      "make: Nothing to be done for `include'.",
+      "##[error]Process completed with exit code 1."
+    ],
+    "artifacts": [],
+    "reason": "make include was a no-op; generated-header/flattened-symlink assertions failed."
+  },
+  {
+    "run_id": 37171183049,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37171183049",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "4a084b046bcd6524829e3bad4f4bf8e4cad62122",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T02:29:03Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111344296347,
+    "failed_steps": [
+      "Configure Wine ARM64EC generated headers"
+    ],
+    "errors": [],
+    "tail": [
+      "",
+      "configure: Finished.  Do 'make' to compile Wine.",
+      "",
+      "make: Nothing to be done for `include'.",
+      "##[error]Process completed with exit code 1."
+    ],
+    "artifacts": [],
+    "reason": "make include was a no-op; generated-header/flattened-symlink assertions failed."
+  },
+  {
+    "run_id": 37171180870,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37171180870",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "4a084b046bcd6524829e3bad4f4bf8e4cad62122",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T02:28:59Z",
+    "conclusion": "failure",
+    "title": "ci: generate Wine Unix headers in the native build tree",
+    "job_id": 111344289524,
+    "failed_steps": [
+      "Configure Wine ARM64EC generated headers"
+    ],
+    "errors": [],
+    "tail": [
+      "",
+      "configure: Finished.  Do 'make' to compile Wine.",
+      "",
+      "make: Nothing to be done for `include'.",
+      "##[error]Process completed with exit code 1."
+    ],
+    "artifacts": [],
+    "reason": "make include was a no-op; generated-header/flattened-symlink assertions failed."
+  },
+  {
+    "run_id": 37171153559,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37171153559",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "278fe423bc0eb069a694e7bbf5fdc233bcf53313",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T02:28:23Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111344206930,
+    "failed_steps": [
+      "Configure Wine ARM64EC generated headers"
+    ],
+    "errors": [],
+    "tail": [
+      "",
+      "configure: Finished.  Do 'make' to compile Wine.",
+      "",
+      "make: Nothing to be done for `include'.",
+      "##[error]Process completed with exit code 1."
+    ],
+    "artifacts": [],
+    "reason": "make include was a no-op; generated-header/flattened-symlink assertions failed."
+  },
+  {
+    "run_id": 37171151245,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37171151245",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "278fe423bc0eb069a694e7bbf5fdc233bcf53313",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T02:28:20Z",
+    "conclusion": "failure",
+    "title": "ci: fix flattened Wine header symlink targets",
+    "job_id": 111344199760,
+    "failed_steps": [
+      "Configure Wine ARM64EC generated headers"
+    ],
+    "errors": [],
+    "tail": [
+      "",
+      "configure: Finished.  Do 'make' to compile Wine.",
+      "",
+      "make: Nothing to be done for `include'.",
+      "##[error]Process completed with exit code 1."
+    ],
+    "artifacts": [],
+    "reason": "make include was a no-op; generated-header/flattened-symlink assertions failed."
+  },
+  {
+    "run_id": 37170130405,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37170130405",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "45d37f16798c281e6b42f01f19d55bbd2f6bb056",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T02:08:20Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111341229817,
+    "failed_steps": [
+      "Build Wine iOS unix library with CSNZ diagnostic"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37170127679,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37170127679",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "45d37f16798c281e6b42f01f19d55bbd2f6bb056",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T02:08:17Z",
+    "conclusion": "failure",
+    "title": "build: consume flattened ARM64EC generated headers",
+    "job_id": 111341226897,
+    "failed_steps": [
+      "Build Wine iOS unix library with CSNZ diagnostic"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37170125327,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37170125327",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "5f60faab4c45262e95e067422bba4338ac4c0fed",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T02:08:14Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111341213105,
+    "failed_steps": [
+      "Build Wine iOS unix library with CSNZ diagnostic"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37170122834,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37170122834",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "5f60faab4c45262e95e067422bba4338ac4c0fed",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T02:08:11Z",
+    "conclusion": "failure",
+    "title": "ci: flatten generated Wine headers for iOS unix compile",
+    "job_id": 111341205341,
+    "failed_steps": [
+      "Build Wine iOS unix library with CSNZ diagnostic"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37169723209,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37169723209",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "11a4e8ae76bb7eb2b2436cc89a2d375a95191650",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T02:00:35Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111340017866,
+    "failed_steps": [
+      "Build Wine iOS unix library with CSNZ diagnostic"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37169720565,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37169720565",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "11a4e8ae76bb7eb2b2436cc89a2d375a95191650",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T02:00:32Z",
+    "conclusion": "failure",
+    "title": "ci: cache Wine build kit and use incremental patched-object rebuilds",
+    "job_id": 111340011135,
+    "failed_steps": [
+      "Build Wine iOS unix library with CSNZ diagnostic"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37169155387,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37169155387",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "ac8ed0b6f518e0e7e2e5b80295eaf74435a83a7b",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T01:49:12Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111338374716,
+    "failed_steps": [
+      "Build Wine iOS unix library with CSNZ diagnostic"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37169152466,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37169152466",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "ac8ed0b6f518e0e7e2e5b80295eaf74435a83a7b",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T01:49:09Z",
+    "conclusion": "failure",
+    "title": "ci: fix Wine gate YAML newlines",
+    "job_id": 111338367350,
+    "failed_steps": [
+      "Build Wine iOS unix library with CSNZ diagnostic"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37169131060,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37169131060",
+    "workflow": ".github/workflows/csnz-clean-build.yml",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "ac200b300ea80dc29792c9af6ea0b80a450fe980",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T01:48:40Z",
+    "conclusion": "failure",
+    "title": "ci: restore explicit branch trigger for diagnostic build",
+    "job_id": null,
+    "failed_steps": [],
+    "errors": [],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Invalid YAML: literal \\\\n embedded in run/name block (locally reproduced parser failure)."
+  },
+  {
+    "run_id": 37168827091,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37168827091",
+    "workflow": ".github/workflows/csnz-clean-build.yml",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "b1bd6213b1c056e6adfbcacaf250fb128e9167ae",
+    "event": "push",
+    "attempt": 1,
+    "created_at": "2026-10-04T01:42:28Z",
+    "conclusion": "failure",
+    "title": "ci: generate complete ARM64EC headers and gate Wine archive",
+    "job_id": null,
+    "failed_steps": [],
+    "errors": [],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Invalid YAML: literal \\\\n embedded in run/name block (locally reproduced parser failure)."
+  },
+  {
+    "run_id": 37168797839,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37168797839",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "1cd5e42e1184def15f15699bce7d16d6f6e630fe",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T01:41:54Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111337297665,
+    "failed_steps": [
+      "Build Wine iOS unix library with CSNZ diagnostic"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37168396056,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37168396056",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "220a9918e41b43de0f42833af4f3dc2e1bf08f5a",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T01:33:52Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111336100502,
+    "failed_steps": [
+      "Build Wine iOS unix library with CSNZ diagnostic"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37167981955,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37167981955",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "022ed19c06c9ac0d15b2c51a04570b76491d0f0a",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T01:25:48Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111334864049,
+    "failed_steps": [
+      "Build Wine iOS unix library with CSNZ diagnostic"
+    ],
+    "errors": [
+      "Results: 35 succeeded, 2 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37167951152,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37167951152",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "abaf390e1baed969299769a3ccc2a9c3dca72022",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T01:25:10Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111334770925,
+    "failed_steps": [
+      "Build Wine iOS unix library with CSNZ diagnostic"
+    ],
+    "errors": [
+      "Results: 34 succeeded, 3 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib server",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/server.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib server; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37167507585,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37167507585",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "85e89fba334a30343d5d1542052162bc0de78abd",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T01:16:28Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111333437375,
+    "failed_steps": [
+      "Build Wine iOS unix library with CSNZ diagnostic"
+    ],
+    "errors": [
+      "Results: 34 succeeded, 3 failed",
+      "Failed: dwrite_unixlib winegstreamer_unixlib server",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/dwrite_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/winegstreamer_unixlib.o: No such file or directory",
+      "ar: /Users/runner/work/madeira/madeira/build/ntdll-unix/obj/server.o: No such file or directory"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Failed: dwrite_unixlib winegstreamer_unixlib server; compiler .err details not printed (artifacts now absent)."
+  },
+  {
+    "run_id": 37167363237,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37167363237",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "418fbeebe37cb8e35997445ad9ee011dbefb00ec",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T01:13:41Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111332996069,
+    "failed_steps": [
+      "Configure Wine generated headers"
+    ],
+    "errors": [
+      "configure: error: Your bison version is too old. Please install bison version 3.0 or newer."
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Apple/system bison too old; Homebrew bison not first in PATH."
+  },
+  {
+    "run_id": 37167241165,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37167241165",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "83ba8a5454eed41d334b5eea53687cdfa189ea5c",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T01:11:16Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111332620550,
+    "failed_steps": [
+      "Configure Wine generated headers"
+    ],
+    "errors": [
+      "configure: error: Your bison version is too old. Please install bison version 3.0 or newer."
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Apple/system bison too old; Homebrew bison not first in PATH."
+  },
+  {
+    "run_id": 37166914455,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37166914455",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "c0d35b532d385b9e9cf99543acb2fe3978f7771a",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T01:04:54Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111331627353,
+    "failed_steps": [
+      "Configure Wine generated headers"
+    ],
+    "errors": [
+      "configure: error: PE cross-compilation is required for aarch64, please install clang/llvm-dlltool/lld, or llvm-mingw."
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "aarch64 PE cross compiler not available to Wine configure."
+  },
+  {
+    "run_id": 37166910320,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37166910320",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "a82e06a7c8b4b26b09c6ef3b1c2825f309dcecb2",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T01:04:48Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111331613479,
+    "failed_steps": [
+      "Install host tools"
+    ],
+    "errors": [
+      "error: toolchain 'stable-aarch64-apple-darwin' does not support target 'aarch64-apple-iosn'; did you mean 'aarch64-apple-ios'?"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Invalid Rust target aarch64-apple-iosn."
+  },
+  {
+    "run_id": 37166765716,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37166765716",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "d25b5471f6c9fff932735374ac9dfc4128d9d963",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T01:01:58Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111331166043,
+    "failed_steps": [
+      "Install host tools"
+    ],
+    "errors": [
+      "error: toolchain 'stable-aarch64-apple-darwin' does not support target 'aarch64-apple-iosn'; did you mean 'aarch64-apple-ios'?"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Invalid Rust target aarch64-apple-iosn."
+  },
+  {
+    "run_id": 37166596094,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37166596094",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "2c093877b45436edf0d8033b4eb5ced9092147ed",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T00:58:51Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111330664543,
+    "failed_steps": [
+      "Install host tools"
+    ],
+    "errors": [
+      "error: toolchain 'stable-aarch64-apple-darwin' does not support target 'aarch64-apple-iosn'; did you mean 'aarch64-apple-ios'?"
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Invalid Rust target aarch64-apple-iosn."
+  },
+  {
+    "run_id": 37166455190,
+    "url": "https://github.com/R347H4CK3R/madeira/actions/runs/37166455190",
+    "workflow": "Build clean CSNZ Madeira IPA",
+    "branch": "csnz-smc-diag-clean",
+    "sha": "98c6afa04a7091920f9939bbb1b45c9520289016",
+    "event": "pull_request",
+    "attempt": 1,
+    "created_at": "2026-10-04T00:55:56Z",
+    "conclusion": "failure",
+    "title": "CSNZ clean diagnostic IPA build",
+    "job_id": 111330236395,
+    "failed_steps": [
+      "Configure Wine generated headers"
+    ],
+    "errors": [
+      "configure: error: Your bison version is too old. Please install bison version 3.0 or newer."
+    ],
+    "tail": [],
+    "artifacts": [],
+    "reason": "Apple/system bison too old; Homebrew bison not first in PATH."
+  }
+]

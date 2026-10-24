@@ -1,0 +1,25 @@
+--- a/dlls/ntdll/loader.c
++++ b/dlls/ntdll/loader.c
+@@ -5315,6 +5315,12 @@
+     KEY_VALUE_PARTIAL_INFORMATION *info = (KEY_VALUE_PARTIAL_INFORMATION *)buffer;
+     UNICODE_STRING nameW = RTL_CONSTANT_STRING( L"\\Registry\\Machine\\Software\\Microsoft\\Wow64\\amd64" );
+     WCHAR module[64] = L"C:\\windows\\system32\\xtajit64.dll";
++    /* The translator's CRT must be native before it can emulate x64 code.
++     * Keep its dependency walk out of the application's DLL search path:
++     * an app-local x64 ucrtbase would otherwise run DllMain on ARM64 before
++     * ProcessInit/ThreadInit. sysx64 holds the ARM64EC farm in a native-ARM64
++     * session; system32 also supports sessions whose system DLLs are EC. */
++    static const WCHAR bootstrap_path[] = L"C:\\windows\\sysx64;C:\\windows\\system32";
+     OBJECT_ATTRIBUTES attr;
+     WINE_MODREF *wm;
+     NTSTATUS status;
+@@ -5335,7 +5341,8 @@
+         NtClose( key );
+     }
+ 
+-    if ((status = load_dll( NULL, module, 0, &wm, FALSE )))
++    ERR( "[ec-bootstrap] native dependency search=%s\n", debugstr_w(bootstrap_path) );
++    if ((status = load_dll( bootstrap_path, module, 0, &wm, FALSE )))
+     {
+         ERR( "could not load %s, status %lx\n", debugstr_w(module), status );
+         NtTerminateProcess( GetCurrentProcess(), status );

@@ -1,0 +1,199 @@
+name: Madeira COD Debug test IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['fix/cod-1938090-ipa-*']
+    paths:
+      - '.github/workflows/cod-test-ipa.yml'
+      - 'build/**'
+      - 'app/**'
+      - 'tools/validate-ipa.py'
+      - 'tests/host/**'
+      - 'FEX'
+      - 'wine'
+      - 'dxmt'
+      - 'madeira-dock'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: madeira-cod-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  host-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Run every host check
+        run: python3 tests/host/run-checks.py --output-dir build/host-check-results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Madeira-COD-host-checks
+          path: build/host-check-results
+          if-no-files-found: warn
+          retention-days: 14
+
+  build:
+    runs-on: macos-15
+    timeout-minutes: 360
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      MADEIRA_VCRUNTIME_ARCHIVE_URL: ${{ secrets.MADEIRA_VCRUNTIME_ARCHIVE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+      - name: Select latest installed Xcode
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PYCODE'
+          import glob, os, re, subprocess
+          candidates = []
+          for app in glob.glob('/Applications/Xcode*.app'):
+              developer = app + '/Contents/Developer'
+              result = subprocess.run(['/usr/bin/xcodebuild', '-version'], env={**os.environ, 'DEVELOPER_DIR': developer}, text=True, capture_output=True)
+              match = re.search(r'Xcode (\d+(?:\.\d+)*)', result.stdout)
+              if result.returncode == 0 and match:
+                  version = tuple(map(int, match.group(1).split('.')))
+                  print(app, result.stdout.strip())
+                  candidates.append((version, developer))
+          if not candidates:
+              raise SystemExit('No usable installed Xcode')
+          version, developer = max(candidates)
+          with open(os.environ['GITHUB_ENV'], 'a') as out:
+              out.write('DEVELOPER_DIR=' + developer + '\n')
+          PYCODE
+      - name: Install host build tools
+        run: |
+          brew install cmake ninja pkg-config bison ccache freetype llvm sevenzip
+          echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+          echo "$(brew --prefix llvm)/bin" >> "$GITHUB_PATH"
+      - name: Identify source and SDK cache inputs
+        id: inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/ci-output/logs
+          xcodebuild -version
+          echo "sdk=$(xcrun --sdk iphoneos --show-sdk-build-version)" >> "$GITHUB_OUTPUT"
+          echo "sources=$(git ls-tree HEAD FEX wine dxmt madeira-dock | shasum -a 256 | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache/restore@v4
+        id: toolchain
+        with:
+          path: toolchains/llvm-mingw-20260421-ucrt-macos-universal
+          key: madeira-mingw-${{ runner.os }}-${{ runner.arch }}-20260421-bd85a397
+      - name: Verify toolchains and source inputs
+        run: bash build/ci/build-ios.sh setup 2>&1 | tee build/ci-output/logs/setup.log
+      - uses: actions/cache/save@v4
+        if: steps.toolchain.outputs.cache-hit != 'true'
+        with:
+          path: toolchains/llvm-mingw-20260421-ucrt-macos-universal
+          key: ${{ steps.toolchain.outputs.cache-primary-key }}
+      - uses: actions/cache/restore@v4
+        id: media
+        with:
+          path: |
+            toolchains/gnutls-ios
+            toolchains/ffmpeg-ios
+            build/gnutls-ios/obj
+            build/ffmpeg/obj
+            build/freetype-ios/build
+            app/Madeira/libavformat.a
+            app/Madeira/libavcodec.a
+            app/Madeira/libswresample.a
+            app/Madeira/libavutil.a
+          key: madeira-media-${{ runner.os }}-${{ runner.arch }}-${{ steps.inputs.outputs.sdk }}-${{ hashFiles('build/ci/build-ios.sh', 'build/gnutls-ios/**', 'build/ffmpeg/**', 'build/freetype-ios/build.sh') }}
+      - name: Build media crypto and font libraries
+        if: steps.media.outputs.cache-hit != 'true'
+        run: bash build/ci/build-ios.sh media 2>&1 | tee build/ci-output/logs/media.log
+      - uses: actions/cache/save@v4
+        if: steps.media.outputs.cache-hit != 'true'
+        with:
+          path: |
+            toolchains/gnutls-ios
+            toolchains/ffmpeg-ios
+            build/gnutls-ios/obj
+            build/ffmpeg/obj
+            build/freetype-ios/build
+            app/Madeira/libavformat.a
+            app/Madeira/libavcodec.a
+            app/Madeira/libswresample.a
+            app/Madeira/libavutil.a
+          key: ${{ steps.media.outputs.cache-primary-key }}
+      - name: Generate complete Wine header sets
+        run: bash build/ci/build-ios.sh headers 2>&1 | tee build/ci-output/logs/headers.log
+      - name: Build Wine iOS libraries
+        run: bash build/ci/build-ios.sh native 2>&1 | tee build/ci-output/logs/native.log
+      - name: Rebuild patched ARM64EC ntdll
+        run: bash build/ci/build-ios.sh pe 2>&1 | tee build/ci-output/logs/pe.log
+      - name: Build FEX iOS libraries
+        run: bash build/ci/build-ios.sh fex 2>&1 | tee build/ci-output/logs/fex.log
+      - name: Build on-device pairing library
+        run: bash build/ci/build-ios.sh pairing 2>&1 | tee build/ci-output/logs/pairing.log
+      - uses: actions/cache/restore@v4
+        id: llvm
+        with:
+          path: |
+            toolchains/llvm-project
+            toolchains/llvm-host-build
+            toolchains/llvm-ios-build
+          key: madeira-llvm15-${{ runner.os }}-${{ runner.arch }}-${{ steps.inputs.outputs.sdk }}-${{ hashFiles('build/ci/build-ios.sh') }}-8dfdcc7b7
+      - name: Build LLVM host tablegen and iOS libraries
+        if: steps.llvm.outputs.cache-hit != 'true'
+        run: bash build/ci/build-ios.sh llvm 2>&1 | tee build/ci-output/logs/llvm.log
+      - uses: actions/cache/save@v4
+        if: steps.llvm.outputs.cache-hit != 'true'
+        with:
+          path: |
+            toolchains/llvm-project
+            toolchains/llvm-host-build
+            toolchains/llvm-ios-build
+          key: ${{ steps.llvm.outputs.cache-primary-key }}
+      - name: Build full DXMT and native D3D12 conversion library
+        run: bash build/ci/build-ios.sh graphics 2>&1 | tee build/ci-output/logs/graphics.log
+      - name: Build Madeira Dock
+        run: bash build/ci/build-ios.sh dock 2>&1 | tee build/ci-output/logs/dock.log
+      - name: Stage unmodified Microsoft x64 runtime input
+        run: bash build/ci/build-ios.sh vcruntime 2>&1 | tee build/ci-output/logs/vcruntime.log
+      - name: Build unsigned Debug arm64 iOS app
+        run: bash build/ci/build-ios.sh app 2>&1 | tee build/ci-output/logs/app.log
+      - name: Package and validate IPA
+        run: bash build/ci/build-ios.sh package 2>&1 | tee build/ci-output/logs/package.log
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: Madeira-COD-Fix-Test
+          path: |
+            build/ci-output/Madeira-COD-Fix-Test.ipa
+            build/ci-output/Madeira-COD-Fix-Test.ipa.sha256
+            build/ci-output/ipa-validation.json
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Madeira-COD-build-evidence
+          path: |
+            build/ci-output/logs
+            build/ci-output/*.txt
+            build/ci-output/*.json
+            build/ci-output/*.xcresult
+            build/ntdll-unix/obj/*.err
+            build/wineserver/obj/**/err-*.txt
+            build/win32u-unix/obj/*.err
+            build/dxmt-ios/obj/*.err
+            wine/build-macos/config.log
+            wine/build-arm64ec/config.log
+          if-no-files-found: warn
+          retention-days: 14
