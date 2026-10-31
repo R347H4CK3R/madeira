@@ -1,5 +1,7 @@
 name: Strata compatibility source checks
 on:
+  pull_request:
+    branches: [main]
   push:
     branches:
       - fix/strata-wine-jit-20261030
