@@ -1,8 +1,9 @@
 name: Madeira macOS dependency and build probe
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [fix/strata-wine-jit-20261030]
-    paths: ['.github/workflows/madeira-macos-build-probe.yml']
   workflow_dispatch:
 permissions:
   contents: read
