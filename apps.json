@@ -1,0 +1,9 @@
+{
+  "name": "Madeira Builds",
+  "identifier": "com.r347h4ck3r.madeira.source",
+  "subtitle": "Madeira test builds for Strata",
+  "description": "Release-backed Madeira IPA feed. Apps appear only after a compiled IPA is published in GitHub Releases.",
+  "iconURL": "https://github.githubassets.com/favicons/favicon.png",
+  "apps": [],
+  "news": []
+}
