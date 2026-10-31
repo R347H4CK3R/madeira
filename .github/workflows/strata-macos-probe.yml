@@ -1,0 +1,42 @@
+name: Madeira Strata macOS dependency probe
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/strata-macos-probe.yml]
+permissions:
+  contents: read
+jobs:
+  check-repair-branch:
+    runs-on: macos-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/strata-wine-jit-20261030
+          submodules: false
+      - name: Verify Xcode and repair branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path
+          git rev-parse HEAD
+          test -f tools/bootstrap-strata-deps.sh
+          test -f build/wineserver/request_ios.c
+      - name: Verify pinned submodules
+        shell: bash
+        run: |
+          set -euo pipefail
+          git submodule sync --recursive
+          git submodule update --init --recursive
+      - name: Recover toolchains and report dependencies
+        shell: bash
+        run: bash tools/bootstrap-strata-deps.sh --install
+      - name: Record result
+        if: always()
+        shell: bash
+        run: |
+          echo '### Madeira Strata macOS dependency probe' >> "$GITHUB_STEP_SUMMARY"
+          echo 'This job verifies build prerequisites but does not produce an IPA.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'A failed submodule checkout or missing native archive is a real build blocker.' >> "$GITHUB_STEP_SUMMARY"
