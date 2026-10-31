@@ -3,11 +3,15 @@ on:
   workflow_dispatch:
   issue_comment:
     types: [created]
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/strata-unsigned-ipa.yml'
 permissions:
   contents: read
 jobs:
   build-unsigned:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && github.event.issue.pull_request && github.event.issue.number == 2 && github.event.comment.body == '/build-unsigned-strata' && github.event.comment.user.login == 'R347H4CK3R')
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || (github.event_name == 'issue_comment' && github.event.issue.pull_request && github.event.issue.number == 2 && github.event.comment.body == '/build-unsigned-strata' && github.event.comment.user.login == 'R347H4CK3R')
     runs-on: macos-latest
     timeout-minutes: 180
     steps:
