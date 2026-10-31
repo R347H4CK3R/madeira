@@ -27,7 +27,11 @@ jobs:
               assert item in s, f"Missing Wine fallback element: {item}"
           j=Path("app/Madeira/JITBuiltInHost.swift").read_text()
           assert 'getenv("LC_HOME_PATH")' in j
+          view=Path("app/Madeira/ContentView.swift").read_text()
+          assert 'getenv("LC_HOME_PATH") != nil && !StikJITHelper.ready' in view
+          assert '[strata-jit]' in view
           print("PASS: Experimental Wine fallback source checks")
-          print("BLOCKED: Built-in JIT remains intentionally disabled inside LiveContainer/Strata")
+          print("PASS: Strata guest JIT diagnostic path present")
+          print("BLOCKED: Host-side Strata BRK script integration requires device testing")
           print("NOTE: This source check is not an iOS build or runtime compatibility test")
           PY
