@@ -1,0 +1,80 @@
+name: Update Madeira IPA source
+on:
+  release:
+    types: [published, edited, released]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: madeira-strata-source
+  cancel-in-progress: false
+jobs:
+  update-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild AltStore-compatible feed from published IPA releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          python3 - <<'PY'
+          import json, os, plistlib, subprocess, tempfile, urllib.request, zipfile
+          from pathlib import Path
+          repo = os.environ["GH_REPO"]
+          token = os.environ["GH_TOKEN"]
+          def api(path):
+              req=urllib.request.Request("https://api.github.com"+path,headers={"Authorization":"Bearer "+token,"Accept":"application/vnd.github+json","User-Agent":"madeira-feed"})
+              with urllib.request.urlopen(req,timeout=30) as resp: return json.load(resp)
+          releases=api("/repos/"+repo+"/releases?per_page=50")
+          apps=[]
+          versions=[]
+          bundle_id=None
+          for rel in releases:
+              if rel.get("draft") or rel.get("prerelease"): continue
+              for asset in rel.get("assets",[]):
+                  if not asset["name"].lower().endswith(".ipa"): continue
+                  url=asset["browser_download_url"]
+                  # Release asset metadata is checked without embedding an unverified download.
+                  # The IPA is inspected for the actual CFBundleIdentifier and version.
+                  try:
+                      req=urllib.request.Request(url,headers={"Authorization":"Bearer "+token,"User-Agent":"madeira-feed"})
+                      with urllib.request.urlopen(req,timeout=180) as res, tempfile.NamedTemporaryFile(suffix=".ipa") as f:
+                          while True:
+                              buf=res.read(1024*1024)
+                              if not buf: break
+                              f.write(buf)
+                          f.flush()
+                          with zipfile.ZipFile(f.name) as z:
+                              names=[n for n in z.namelist() if n.startswith("Payload/") and n.count("/") == 2 and n.endswith(".app/Info.plist")]
+                              if not names:
+                                  names=[n for n in z.namelist() if n.startswith("Payload/") and n.endswith(".app/Info.plist")]
+                              if not names: raise ValueError("No app Info.plist")
+                              info=plistlib.loads(z.read(names[0]))
+                      bid=info["CFBundleIdentifier"]
+                      ver=str(info["CFBundleShortVersionString"])
+                      build=str(info.get("CFBundleVersion",ver))
+                  except Exception as e:
+                      print("Skipping",asset["name"],"because IPA metadata could not be verified:",e)
+                      continue
+                  if bundle_id and bid != bundle_id:
+                      print("Skipping different bundle identifier",bid)
+                      continue
+                  bundle_id=bid
+                  versions.append({"version":ver,"date":rel["published_at"],"localizedDescription":rel.get("body") or "Madeira release", "downloadURL":url,"size":asset["size"],"buildVersion":build})
+          if versions:
+              first=versions[0]
+              apps=[{"name":"Madeira","bundleIdentifier":bundle_id,"developerName":"Madeira contributors","subtitle":"Wine and PC game compatibility testing","localizedDescription":"Experimental Madeira build. Strata integration is not guaranteed.","iconURL":"https://github.githubassets.com/favicons/favicon.png","tintColor":"#506F9A","size":first["size"],"version":first["version"],"versionDate":first["date"],"downloadURL":first["downloadURL"],"versions":versions}]
+          feed={"name":"Madeira Builds","identifier":"com.r347h4ck3r.madeira.source","subtitle":"Madeira test builds for Strata","description":"Release-backed Madeira IPA feed. No app is shown until a downloadable IPA has been published and verified.","iconURL":"https://github.githubassets.com/favicons/favicon.png","apps":apps,"news":[]}
+          Path("apps.json").write_text(json.dumps(feed,indent=2)+"\n")
+          print("Published app count:",len(apps),"versions:",len(versions))
+          PY
+      - name: Commit refreshed feed if changed
+        run: |
+          if ! git diff --quiet -- apps.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add apps.json
+            git commit -m "Update Madeira release source"
+            git push
+          fi
