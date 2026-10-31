@@ -1,0 +1,39 @@
+name: Strata compatibility source checks
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - fix/strata-wine-jit-20261030
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Wine fallback and JIT integration blockers
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path("build/wineserver/request_ios.c").read_text()
+          required=[
+              'if (errno == EPERM || errno == EACCES)',
+              'socketpair(AF_UNIX, SOCK_STREAM, 0, pair)',
+              'ios_master_injected_only = 1;',
+              'if (!ios_master_injected_only)',
+              'void master_socket_handle_client(int client_fd)'
+          ]
+          for item in required:
+              assert item in s, f"Missing Wine fallback element: {item}"
+          j=Path("app/Madeira/JITBuiltInHost.swift").read_text()
+          assert 'getenv("LC_HOME_PATH")' in j
+          view=Path("app/Madeira/ContentView.swift").read_text()
+          assert 'getenv("LC_HOME_PATH") != nil && !StikJITHelper.ready' in view
+          assert '[strata-jit]' in view
+          print("PASS: Experimental Wine fallback source checks")
+          print("PASS: Strata guest JIT diagnostic path present")
+          print("BLOCKED: Host-side Strata BRK script integration requires device testing")
+          print("NOTE: This source check is not an iOS build or runtime compatibility test")
+          PY

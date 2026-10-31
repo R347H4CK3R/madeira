@@ -1,0 +1,36 @@
+name: Madeira macOS dependency and build probe
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [fix/strata-wine-jit-20261030]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - name: Inspect Xcode and pinned submodules
+        shell: bash
+        run: |
+          set -uo pipefail
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path
+          git submodule sync --recursive
+          git submodule update --init --recursive 2>&1 | tee /tmp/madeira-submodules.log
+          test ${PIPESTATUS[0]} -eq 0 || { echo "::error::Pinned submodule commit unavailable; cannot safely build source"; exit 1; }
+      - name: Bootstrap recoverable dependencies
+        run: bash tools/bootstrap-strata-deps.sh --install
+      - name: Build readiness report
+        if: always()
+        shell: bash
+        run: |
+          echo "### Madeira dependency verification" >> "$GITHUB_STEP_SUMMARY"
+          echo "Branch: $GITHUB_REF_NAME" >> "$GITHUB_STEP_SUMMARY"
+          echo "Missing toolchain/native archives must be built before Xcode compilation." >> "$GITHUB_STEP_SUMMARY"
+          if test -f /tmp/madeira-submodules.log; then tail -30 /tmp/madeira-submodules.log >> "$GITHUB_STEP_SUMMARY"; fi

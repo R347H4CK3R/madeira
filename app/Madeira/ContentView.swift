@@ -2272,6 +2272,22 @@ struct ContentView: View {
             launchAfterJITEnded(started: false)
             return
         }
+        // LiveContainer-family hosts own the executable and debugger task. A guest
+        // cannot launch Madeira's bundled JIT extension as a separate app.
+        // Report host-side setup accurately instead of attempting a guest helper.
+        if getenv("LC_HOME_PATH") != nil && !StikJITHelper.ready {
+            if StikJITHelper.flaggedWithoutDebugger {
+                logStore.log("[strata-jit] Guest has CS_DEBUGGED but no live debugger. Configure the Strata host to keep its debugger attached for Madeira's BRK pool request.", level: .error)
+            } else {
+                logStore.log("[strata-jit] JIT must be activated for Strata's host process with Madeira's custom BRK script before launching the guest.", level: .error)
+            }
+            jitStatus = .unavailable
+            if library.enabled {
+                library.error = "Madeira is running inside Strata/LiveContainer. Activate JIT for Strata's host process using Madeira's JIT script, then relaunch the guest. Madeira's built-in helper cannot run inside Strata."
+            }
+            launchAfterJITEnded(started: false)
+            return
+        }
         jitStatus = .testing
         logStore.log("Requesting JIT with \(jitCoordinator.resolvedMethod.title)...")
 
