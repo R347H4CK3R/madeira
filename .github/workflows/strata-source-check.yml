@@ -14,7 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Test dependency bootstrap failure handling
-        run: python3 tests/host/test-strata-bootstrap.py
+        run: |
+          python3 tests/host/test-strata-bootstrap.py
+          python3 tests/host/check-jit-method.py
       - name: Check Wine fallback and JIT integration blockers
         run: |
           python3 - <<'PY'
