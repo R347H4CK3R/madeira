@@ -25,7 +25,19 @@ jobs:
           git submodule update --init --recursive 2>&1 | tee /tmp/madeira-submodules.log
           test ${PIPESTATUS[0]} -eq 0 || { echo "::error::Pinned submodule commit unavailable; cannot safely build source"; exit 1; }
       - name: Bootstrap recoverable dependencies
-        run: bash tools/bootstrap-strata-deps.sh --install
+        shell: bash
+        run: |
+          set -o pipefail
+          bash tools/bootstrap-strata-deps.sh --install 2>&1 | tee /tmp/madeira-bootstrap.log
+      - name: Preserve diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: madeira-build-prerequisite-logs
+          path: |
+            /tmp/madeira-submodules.log
+            /tmp/madeira-bootstrap.log
+          if-no-files-found: warn
       - name: Build readiness report
         if: always()
         shell: bash

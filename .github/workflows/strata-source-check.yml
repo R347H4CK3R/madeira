@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Test dependency bootstrap failure handling
+        run: python3 tests/host/test-strata-bootstrap.py
       - name: Check Wine fallback and JIT integration blockers
         run: |
           python3 - <<'PY'

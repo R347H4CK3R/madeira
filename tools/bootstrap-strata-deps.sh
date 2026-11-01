@@ -2,7 +2,6 @@
 # Madeira dependency bootstrap (macOS only). No redistribution of Apple/Microsoft binaries.
 set -Eeuo pipefail
 cd "$(dirname "$0")/.."
-ROOT="$PWD"
 MODE="${1:---check}"
 if [[ "$MODE" != "--check" && "$MODE" != "--install" ]]; then echo "Usage: $0 --check|--install"; exit 2; fi
 missing=0
@@ -12,7 +11,7 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
   echo "BLOCKED: Xcode and this iOS build chain require macOS. Current host: $(uname -s)"
   exit 2
 fi
-for tool in xcodebuild xcrun git cmake ninja python3 curl shasum tar; do
+for tool in xcodebuild xcrun git cmake ninja python3 curl shasum tar cargo rustup meson pkg-config llvm-objcopy; do
   command -v "$tool" >/dev/null 2>&1 && ok "$tool" || warn "$tool"
 done
 if [[ "$MODE" == "--install" && $missing -gt 0 ]]; then echo "Install missing build tools first."; exit 2; fi
@@ -21,11 +20,23 @@ if xcodebuild -version >/dev/null 2>&1; then ok "Xcode selected"; else warn "Sel
 # Preserve the pinned gitlink commits, never silently replace them with newer HEADs.
 if [[ "$MODE" == "--install" ]]; then
   git submodule sync --recursive
-  git submodule update --init --recursive || echo "Submodule checkout failed; inspect pinned commit availability."
+  git submodule update --init --recursive || { echo "BLOCKED: Submodule checkout failed; inspect pinned commit availability."; exit 1; }
 fi
 for mod in FEX wine dxmt madeira-dock; do
   if [[ -f "$mod/.git" || -d "$mod/.git" ]]; then ok "submodule $mod"; else warn "submodule $mod (pinned checkout)"; fi
 done
+# A .git marker alone says nothing about checkout success or the pinned revision.
+if submodule_status=$(git submodule status --recursive); then
+  while IFS= read -r entry; do
+    [[ -z "$entry" ]] && continue
+    case "$entry" in
+      ' '*) ok "pinned submodule revision: $entry" ;;
+      *) warn "pinned submodule revision: $entry" ;;
+    esac
+  done <<< "$submodule_status"
+else
+  warn "pinned submodule revision status could not be read"
+fi
 # Exact upstream toolchain hash from docs/BUILDING.md.
 TC="toolchains/llvm-mingw-20260421-ucrt-macos-universal"
 ARCHIVE="llvm-mingw-20260421-ucrt-macos-universal.tar.xz"
@@ -44,14 +55,29 @@ if [[ ! -d toolchains/llvm-project && "$MODE" == "--install" ]]; then
   git clone --filter=blob:none https://github.com/llvm/llvm-project.git toolchains/llvm-project
   git -C toolchains/llvm-project checkout 8dfdcc7b7
 fi
-[[ -d toolchains/llvm-project ]] && ok "LLVM source" || warn "LLVM source at commit 8dfdcc7b7"
-[[ -d toolchains/llvm-ios-build ]] && ok "LLVM iOS build directory" || warn "toolchains/llvm-ios-build (compile LLVM per docs/BUILDING.md)"
-[[ -d toolchains/llvm-host-build ]] && ok "LLVM host build directory" || warn "toolchains/llvm-host-build (TableGen)"
+llvm_revision=$(git -C toolchains/llvm-project rev-parse HEAD 2>/dev/null || true)
+[[ "$llvm_revision" == 8dfdcc7b7* ]] && ok "LLVM source at $llvm_revision" || warn "LLVM source at commit 8dfdcc7b7"
+# Directories are not compiled outputs. Check files consumed by native scripts.
+for input in toolchains/llvm-ios-build/include/llvm/Config/llvm-config.h \
+  toolchains/llvm-ios-build/lib/libLLVMCore.a \
+  toolchains/llvm-host-build/bin/llvm-tblgen \
+  wine/build-macos/include/config.h \
+  toolchains/ffmpeg-ios/include/libavformat/avformat.h \
+  toolchains/gnutls-ios/include/gnutls/gnutls.h; do
+  [[ -s "$input" ]] && ok "$input" || warn "$input"
+done
+for lib in FEXCore/Source/libFEXCore.a FEXCore/Source/libFEXCore_Base.a \
+  FEXCore/Source/libJemallocLibs.a External/fmt/libfmt.a \
+  External/cephes/libcephes_128bit.a External/xxhash/cmake_unofficial/libxxhash.a \
+  External/SoftFloat-3e/libsoftfloat_3e.a; do
+  input="FEX/build-ios/$lib"
+  [[ -s "$input" ]] && ok "$input" || warn "$input (build/fex-ios/build.sh)"
+done
 # Proprietary dependencies: never download unofficial copies or commit these.
 [[ -d app/Madeira/x86_64-vcruntime && -n "$(find app/Madeira/x86_64-vcruntime -maxdepth 1 -iname 'vcruntime140*.dll' -print -quit 2>/dev/null)" ]] && ok "Microsoft VC++ x64 runtime" || warn "app/Madeira/x86_64-vcruntime (extract licensed vc_redist.x64.exe)"
 # Native output files consumed by the Xcode target.
-for lib in libavformat.a libavcodec.a libswresample.a libavutil.a libdxmt_combined.a libwineserver.a libntdll_unix.a libwin32u_unix.a libmadeira_rppairing.a; do
-  [[ -f "app/Madeira/$lib" ]] && ok "$lib" || warn "app/Madeira/$lib (run the corresponding build script)"
+for lib in libavformat.a libavcodec.a libswresample.a libavutil.a libdxmt_combined.a libwineserver.a libntdll_unix.a libwin32u_unix.a libmadeira_rppairing.a libgnutls.a libnettle.a libhogweed.a libgmp.a; do
+  [[ -s "app/Madeira/$lib" ]] && ok "$lib" || warn "app/Madeira/$lib (run the corresponding build script)"
 done
 echo "Missing prerequisites: $missing"
 if (( missing > 0 )); then exit 1; fi
