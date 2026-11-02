@@ -20,6 +20,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+      - name: Check complete native dependency tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git submodule status --recursive | tee "$RUNNER_TEMP/submodules.txt"
+          if grep -Eq '^[-+U]' "$RUNNER_TEMP/submodules.txt"; then
+            echo "::error::Native submodule revisions are missing or inconsistent. Runtime cannot be published."
+            exit 1
+          fi
       - name: Require real Wine FEX DXMT and Steam sources
         shell: bash
         run: |
@@ -30,6 +39,7 @@ jobs:
           test -s app/Madeira/SteamGames.swift
           test -s app/Madeira/SteamInstall.swift
           test -s app/Madeira.xcodeproj/project.pbxproj
+          test -d app/Madeira/x86_64-vcruntime || { echo '::error::Missing x86_64-vcruntime assets'; exit 1; }
       - name: Compile full runtime, fail closed if dependencies are absent
         shell: bash
         run: |
