@@ -6,6 +6,8 @@ on:
     paths:
       - 'docs/STRATAFORGE_VERIFICATION.md'
       - 'tools/strataforge_readiness.py'
+      - 'tools/strataforge_sanitize.py'
+      - 'tools/test_strataforge_sanitize.py'
       - '.github/workflows/strataforge-readiness.yml'
       - '.gitmodules'
       - 'build/**'
@@ -23,6 +25,8 @@ jobs:
           submodules: false
       - name: Audit source and explicitly report missing native inputs
         run: python3 tools/strataforge_readiness.py
+      - name: Test crash report privacy and bounded size
+        run: python3 tools/test_strataforge_sanitize.py
       - name: Upload readiness report
         uses: actions/upload-artifact@v4
         with:
