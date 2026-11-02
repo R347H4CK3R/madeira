@@ -16,6 +16,17 @@ checks = {
 }
 dep_inputs = ("FEX", "wine", "dxmt", "madeira-dock")
 checks.update({f"dependency_present_{name}": (root/name).is_dir() and any((root/name).iterdir()) for name in dep_inputs})
+# Source checkout is not the same as a native iOS linkable runtime.
+required_binaries = {
+    "fex_core_ios": "FEX/build-ios/FEXCore/Source/libFEXCore.a",
+    "fex_core_base_ios": "FEX/build-ios/FEXCore/Source/libFEXCore_Base.a",
+    "wine_server_ios": "app/Madeira/libwineserver.a",
+    "dxmt_ios": "app/Madeira/libdxmt_combined.a",
+}
+checks.update({f"native_binary_{name}": (root / relative).is_file() and (root / relative).stat().st_size > 0
+              for name, relative in required_binaries.items()})
+checks["windows_vcruntime_assets"] = (root / "app/Madeira/x86_64-vcruntime").is_dir()
+
 report = {
     "project": "StrataForge",
     "scope": "repository-only",
