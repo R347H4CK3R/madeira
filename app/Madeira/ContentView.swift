@@ -4515,8 +4515,9 @@ private struct StrataForgeLiveConsole: View {
                         }
                     }
                 }
-                Toggle("Save crash and error event codes locally", isOn: $crashReporter.enabled)
+                Text("Crash event codes are saved locally. Automatic GitHub upload is not connected yet.")
                     .font(.caption)
+                    .foregroundStyle(.secondary)
                     .padding(.horizontal)
                 ShareLink(item: crashReporter.sanitizedReport) {
                     Label("Export crash event journal", systemImage: "doc.text")
