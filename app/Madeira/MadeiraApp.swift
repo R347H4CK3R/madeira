@@ -20,10 +20,10 @@ struct MadeiraApp: App {
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
                     StrataForgeSessionLog.record("memory_warning")
                 }
-        }
-        .onChange(of: scenePhase) { newPhase in
-            if newPhase == .background { StrataForgeSessionLog.record("background") }
-            if newPhase == .active { StrataForgeSessionLog.record("foreground") }
+                .onChange(of: scenePhase) { newPhase in
+                    if newPhase == .background { StrataForgeSessionLog.record("background") }
+                    if newPhase == .active { StrataForgeSessionLog.record("foreground") }
+                }
         }
     }
 }
