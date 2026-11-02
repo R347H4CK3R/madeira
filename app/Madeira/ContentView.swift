@@ -4439,6 +4439,7 @@ struct MappingPanel: View {
 }
 
 private struct StrataForgeLiveConsole: View {
+    @ObservedObject private var crashReporter = StrataForgeCrashReporter.shared
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var store = LogStore.shared
     @State private var verbose = true
@@ -4514,6 +4515,15 @@ private struct StrataForgeLiveConsole: View {
                         }
                     }
                 }
+                Toggle("Save crash and error event codes locally", isOn: $crashReporter.enabled)
+                    .font(.caption)
+                    .padding(.horizontal)
+                ShareLink(item: crashReporter.sanitizedReport) {
+                    Label("Export crash event journal", systemImage: "doc.text")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .padding(.horizontal)
                 ShareLink(item: exportText) {
                     Label("Export sanitized log", systemImage: "square.and.arrow.up")
                         .frame(maxWidth: .infinity)
