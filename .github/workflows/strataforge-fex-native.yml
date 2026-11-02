@@ -17,7 +17,8 @@ jobs:
           ref: feature/strataforge-feasibility
           submodules: false
       - name: Fetch only pinned FEX source
-        run: git submodule update --init --depth 1 FEX
+        run: |
+          git submodule update --init --depth 1 FEX
           git -C FEX submodule update --init --depth 1 --recursive
       - uses: actions/setup-python@v5
         with:
