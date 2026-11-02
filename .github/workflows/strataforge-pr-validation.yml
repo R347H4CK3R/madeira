@@ -1,5 +1,9 @@
 name: StrataForge PR build validation
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/strataforge-pr-validation.yml'
   pull_request:
     paths:
       - 'strataforge-probe/**'
@@ -15,6 +19,8 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: feature/strataforge-feasibility
       - name: Validate redaction tests
         run: python3 tools/test_strataforge_sanitize.py
       - name: Run readiness audit
