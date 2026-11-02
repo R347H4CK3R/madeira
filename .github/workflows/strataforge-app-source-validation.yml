@@ -24,6 +24,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m py_compile tools/strataforge_sanitize.py tools/strataforge_native_inputs.py tools/strataforge_patch_fex_host_diagnostics.py
+          bash -n tools/bootstrap_llvm_mingw_macos.sh tools/bootstrap_llvm_ios_macos.sh
           python3 tools/test_strataforge_sanitize.py
           test -s app/Madeira/StrataForgeCrashReporter.swift
           grep -Fq 'StrataForgeCrashReporter.swift in Sources' app/Madeira.xcodeproj/project.pbxproj
