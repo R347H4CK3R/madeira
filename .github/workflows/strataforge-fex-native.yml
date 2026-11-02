@@ -15,7 +15,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: feature/strataforge-feasibility
-          submodules: recursive
+          submodules: false
+      - name: Fetch only pinned FEX source
+        run: git submodule update --init --depth 1 FEX
       - name: Native iPhone toolchain preflight
         run: |
           xcodebuild -version
