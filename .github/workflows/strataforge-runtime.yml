@@ -40,6 +40,9 @@ jobs:
           test -s app/Madeira/SteamInstall.swift
           test -s app/Madeira.xcodeproj/project.pbxproj
           test -d app/Madeira/x86_64-vcruntime || { echo '::error::Missing x86_64-vcruntime assets'; exit 1; }
+          for lib in FEX/build-ios/FEXCore/Source/libFEXCore.a FEX/build-ios/FEXCore/Source/libFEXCore_Base.a app/Madeira/libwineserver.a; do
+            if [ ! -s "$lib" ]; then echo "::error::Missing compiled runtime library $lib"; exit 1; fi
+          done
       - name: Compile full runtime, fail closed if dependencies are absent
         shell: bash
         run: |
