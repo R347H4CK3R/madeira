@@ -6,6 +6,7 @@ on:
     paths:
       - 'app/**'
       - 'tools/publish_strataforge_runtime.py'
+      - 'tools/strataforge_native_inputs.py'
       - '.github/workflows/strataforge-runtime.yml'
 permissions:
   contents: write
@@ -29,6 +30,9 @@ jobs:
             echo "::error::Native submodule revisions are missing or inconsistent. Runtime cannot be published."
             exit 1
           fi
+      - name: Show exact native missing inputs
+        run: |
+          python3 tools/strataforge_native_inputs.py
       - name: Require real Wine FEX DXMT and Steam sources
         shell: bash
         run: |
