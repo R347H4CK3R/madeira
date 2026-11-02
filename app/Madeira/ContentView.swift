@@ -4515,7 +4515,13 @@ private struct StrataForgeLiveConsole: View {
                         }
                     }
                 }
-                Text("Crash event codes are saved locally. Automatic GitHub upload is not connected yet.")
+                Toggle("Enable automatic event reporting", isOn: $crashReporter.enabled)
+                TextField("HTTPS relay URL", text: $crashReporter.relayURL)
+                    .textFieldStyle(.roundedBorder)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Text(crashReporter.lastStatus)
+                    .font(.caption)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal)
