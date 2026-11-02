@@ -1,0 +1,25 @@
+name: StrataForge app source validation
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/strataforge-app-source-validation.yml'
+permissions:
+  contents: read
+jobs:
+  swift-source:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/strataforge-feasibility
+          submodules: false
+      - name: Swift syntax and project registration
+        run: |
+          set -euo pipefail
+          xcrun swiftc -frontend -parse app/Madeira/StrataForgeCrashReporter.swift
+          xcrun swiftc -frontend -parse app/Madeira/MadeiraApp.swift
+          xcrun swiftc -frontend -parse app/Madeira/ContentView.swift
+          grep -Fq 'StrataForgeCrashReporter.swift in Sources' app/Madeira.xcodeproj/project.pbxproj
+          xcodebuild -list -project app/Madeira.xcodeproj
