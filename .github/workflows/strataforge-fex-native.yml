@@ -30,7 +30,9 @@ jobs:
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-path
           cmake --version
-      - name: Guard iOS-only upstream debug counters\n        run: python tools/strataforge_patch_fex_host_diagnostics.py\n      - name: Build native FEX archives for iOS
+      - name: Guard iOS-only upstream debug counters
+        run: python tools/strataforge_patch_fex_host_diagnostics.py
+      - name: Build native FEX archives for iOS
         run: |
           set -o pipefail
           bash build/fex-ios/build.sh 2>&1 | tee "$RUNNER_TEMP/fex-ios-build.log"
