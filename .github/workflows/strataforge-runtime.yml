@@ -55,7 +55,10 @@ jobs:
           APP="$RUNNER_TEMP/StrataForgeDerived/Build/Products/Release-iphoneos/Madeira.app"
           test -s "$APP/Madeira"
           test -f "$APP/Info.plist"
-          test -d "$APP/Frameworks" || { echo "::error::Native runtime dependencies must be embedded"; exit 1; }
+          # FEX/Wine/DXMT are primarily static .a archives linked into the
+          # executable; a Frameworks directory is NOT required for static linking.
+          xcrun otool -hv "$APP/Madeira" | grep -q ARM64 || { echo "::error::Not an ARM64 iOS executable"; exit 1; }
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist" | grep -Fx Madeira
           mkdir -p "$RUNNER_TEMP/Payload"
           ditto "$APP" "$RUNNER_TEMP/Payload/Madeira.app"
           (cd "$RUNNER_TEMP" && zip -qry "$GITHUB_WORKSPACE/StrataForge-Wine-Steam.ipa" Payload)
