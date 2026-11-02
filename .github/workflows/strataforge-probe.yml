@@ -1,0 +1,43 @@
+name: Build StrataForge iOS probe
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/strataforge-feasibility
+    paths:
+      - 'strataforge-probe/**'
+      - '.github/workflows/strataforge-probe.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate iOS Xcode project
+        working-directory: strataforge-probe
+        run: xcodegen generate
+      - name: Compile unsigned iOS preflight
+        working-directory: strataforge-probe
+        run: |
+          set -o pipefail
+          xcodebuild -project StrataForgeProbe.xcodeproj -scheme StrataForgeProbe -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath ./DerivedData CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build.log
+      - name: Package inspectable probe IPA
+        working-directory: strataforge-probe
+        run: |
+          set -euo pipefail
+          mkdir Payload
+          cp -R DerivedData/Build/Products/Release-iphoneos/StrataForgeProbe.app Payload/
+          test -x Payload/StrataForgeProbe.app/StrataForgeProbe
+          zip -qr StrataForgeProbe-unsigned.ipa Payload
+          unzip -t StrataForgeProbe-unsigned.ipa
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: StrataForgeProbe-iOS-unsigned
+          path: |
+            strataforge-probe/StrataForgeProbe-unsigned.ipa
+            strataforge-probe/build.log
+          if-no-files-found: warn
