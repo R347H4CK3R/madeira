@@ -30,6 +30,12 @@ jobs:
             echo "::error::Native submodule revisions are missing or inconsistent. Runtime cannot be published."
             exit 1
           fi
+      - name: Acquire verified cross compiler and LLVM libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/bootstrap_llvm_mingw_macos.sh
+          bash tools/bootstrap_llvm_ios_macos.sh
       - name: Show exact native missing inputs
         run: |
           python3 tools/strataforge_native_inputs.py
@@ -51,12 +57,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          xcodebuild -project app/Madeira.xcodeproj -scheme Madeira -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/StrataForgeDerived" CODE_SIGNING_ALLOWED=NO build 2>&1 | tee "$RUNNER_TEMP/strataforge-build.log"
+          xcodebuild -project app/Madeira.xcodeproj -scheme Madeira -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/StrataForgeDerived" CODE_SIGNING_ALLOWED=NO build 2>&1 | tee "$RUNNER_TEMP/strataforge-build.log"
       - name: Package one Strata-compatible unsigned runtime IPA
         shell: bash
         run: |
           set -euo pipefail
-          APP="$RUNNER_TEMP/StrataForgeDerived/Build/Products/Release-iphoneos/Madeira.app"
+          APP="$RUNNER_TEMP/StrataForgeDerived/Build/Products/Debug-iphoneos/Madeira.app"
           test -s "$APP/Madeira"
           test -f "$APP/Info.plist"
           # FEX/Wine/DXMT are primarily static .a archives linked into the
