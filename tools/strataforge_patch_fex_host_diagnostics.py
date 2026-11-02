@@ -22,11 +22,13 @@ data = data.replace(end, "#endif // FEX_IOS_HOST callback counters\n\n" + end, 1
 # Preserve its Windows path; use bounded generic diagnostics on iOS.
 cas_start = '  MEMORY_BASIC_INFORMATION mbi {};'
 cas_end = '\n}'
-if data.count(cas_start) != 1:
+arm_path = Path('FEX/FEXCore/Source/Utils/ArchHelpers/Arm64.cpp')
+arm_data = arm_path.read_text()
+if arm_data.count(cas_start) != 1:
     raise SystemExit("FEX CASPAL diagnostic anchor changed")
-i = data.index(cas_start)
-j = data.index(cas_end, i)
-original = data[i:j]
+i = arm_data.index(cas_start)
+j = arm_data.index(cas_end, i)
+original = arm_data[i:j]
 if "VirtualQuery" not in original or "mbi.State" not in original:
     raise SystemExit("Unexpected FEX CASPAL diagnostic implementation")
 fallback = ('#if defined(_WIN32)\n' + original +
@@ -34,6 +36,7 @@ fallback = ('#if defined(_WIN32)\n' + original +
             '  LogMan::Msg::EFmt("[caspal128] size={} addrReg=x{} addr={:#x} misalign={}", '
             'Size, AddressReg, GPRs[AddressReg], GPRs[AddressReg] & 15);\n'
             '#endif')
-data = data[:i] + fallback + data[j:]
+arm_data = arm_data[:i] + fallback + arm_data[j:]
+arm_path.write_text(arm_data)
 path.write_text(data)
 print("Guarded iOS-only callback counters in native FEX compilation")
