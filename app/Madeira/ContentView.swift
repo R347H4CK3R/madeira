@@ -1170,6 +1170,28 @@ struct MadeiraMetalView: UIViewRepresentable {
     func updateUIView(_ uiView: MetalBackedView, context: Context) {}
 }
 
+private enum StrataForgeRecovery {
+    static func guidance(for message: String) -> String {
+        let lower = message.lowercased()
+        if lower.contains("jit") || lower.contains("debugger") {
+            return "Recovery: verify Strata Launch with JIT on the guest process before retrying."
+        }
+        if lower.contains("memory") || lower.contains("allocation") || lower.contains("jetsam") {
+            return "Recovery: enable compact memory settings, lower resolution and restart the guest once."
+        }
+        if lower.contains("metal") || lower.contains("shader") || lower.contains("dxmt") {
+            return "Recovery: lower rendering resolution and inspect graphics diagnostics."
+        }
+        if lower.contains("steam") || lower.contains("depot") || lower.contains("license") {
+            return "Recovery: check Steam sign-in, ownership and downloaded files."
+        }
+        if lower.contains("wine") || lower.contains("wineserver") || lower.contains("socket") {
+            return "Recovery: restart the guest to clear Wine server state and capture launch diagnostics."
+        }
+        return "Recovery: save diagnostics and retry once with a lower-resolution profile; avoid repeated launch loops."
+    }
+}
+
 struct ContentView: View {
     /// iOS 26 and later blur content under the navigation bar themselves.
     private static var systemScrollEdge: Bool {
@@ -2424,7 +2446,7 @@ struct ContentView: View {
     private func startLibraryEntry(_ entry: LibraryEntry) {
         do { if entry.desktop != true { _ = try LibraryModel.executable(entry.launchRelativePath) }; try entry.validate() }
         catch {
-            library.error = error.localizedDescription
+            library.error = error.localizedDescription + "\n" + StrataForgeRecovery.guidance(for: error.localizedDescription)
             logStore.log("[launch-preflight] profile validation failed: \(error.localizedDescription)", level: .error)
             return
         }
@@ -3111,7 +3133,7 @@ struct ContentView: View {
         func fail(_ error: Error) {
             MadeiraDock.cleanup()
             SteamOwnedLibrary.shared.dockEnded()
-            MadeiraDockModel.shared.status = error.localizedDescription
+            MadeiraDockModel.shared.status = error.localizedDescription + "\n" + StrataForgeRecovery.guidance(for: error.localizedDescription)
             logStore.log("[madeira-dock] not started: \(error.localizedDescription)", level: .error)
             if inLibrary { library.error = error.localizedDescription }
         }
