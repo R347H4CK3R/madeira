@@ -10,6 +10,7 @@ struct MadeiraApp: App {
             ContentView()
                 .modifier(ClaimGamepadEvents())
                 .onAppear {
+                    StrataForgeCrashReporter.shared.startSession()
                     StrataForgeSessionLog.start()
                     GamepadInput.shared.start()
                     HardwareInput.shared.start()
@@ -19,10 +20,11 @@ struct MadeiraApp: App {
                 .onOpenURL { url in JITNetworkShortcut.shared.handle(url) }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
                     StrataForgeSessionLog.record("memory_warning")
+                    StrataForgeCrashReporter.shared.record("memory_warning")
                 }
                 .onChange(of: scenePhase) { newPhase in
-                    if newPhase == .background { StrataForgeSessionLog.record("background") }
-                    if newPhase == .active { StrataForgeSessionLog.record("foreground") }
+                    if newPhase == .background { StrataForgeSessionLog.record("background"); StrataForgeCrashReporter.shared.markSafeBackground() }
+                    if newPhase == .active { StrataForgeSessionLog.record("foreground"); StrataForgeCrashReporter.shared.markActive() }
                 }
         }
     }
