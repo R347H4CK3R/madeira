@@ -57,3 +57,6 @@ Its current installer bridge is restricted to approved package operations. Build
 - [ ] Metal test
 - [ ] Controller test
 - [ ] Game launch
+
+## CI verification
+A macOS pull-request validation workflow on main checks the compact preflight app and source-readiness audit. This workflow does not establish a working Wine/FEX emulator or publish one to Strata.
