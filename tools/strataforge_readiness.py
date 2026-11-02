@@ -26,6 +26,9 @@ required_binaries = {
 checks.update({f"native_binary_{name}": (root / relative).is_file() and (root / relative).stat().st_size > 0
               for name, relative in required_binaries.items()})
 checks["windows_vcruntime_assets"] = (root / "app/Madeira/x86_64-vcruntime").is_dir()
+checks["llvm_ios_build"] = (root / "toolchains/llvm-ios-build").is_dir()
+checks["llvm_host_build"] = (root / "toolchains/llvm-host-build").is_dir()
+checks["mingw_cross_toolchain"] = (root / "toolchains/llvm-mingw-20260421-ucrt-macos-universal").is_dir()
 
 report = {
     "project": "StrataForge",
