@@ -1273,7 +1273,7 @@ struct ContentView: View {
                 hasShownStartupConsole = true
                 showStartupConsole = true
             }
-            .navigationTitle("Madeira")
+            .navigationTitle("Madeira + StrataForge")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             // The library keeps a material bar only before iOS 26. From iOS 26 the
@@ -4460,6 +4460,10 @@ private struct StrataForgeLiveConsole: View {
         let values = store.entries
         return verbose ? values : values.filter { $0.level == .error }
     }
+    private var latestErrorGuidance: String? {
+        guard let entry = store.entries.last(where: { $0.level == .error }) else { return nil }
+        return StrataForgeRecovery.guidance(for: entry.lastRaw)
+    }
     private var exportText: String {
         let header = "StrataForge diagnostic preview (sanitized)\n" +
                      "No Steam credentials or account data included.\n"
@@ -4475,6 +4479,22 @@ private struct StrataForgeLiveConsole: View {
                     Toggle("Verbose", isOn: $verbose)
                     Toggle("Follow", isOn: $followLatest)
                 }.toggleStyle(.switch).font(.caption)
+                if let guidance = latestErrorGuidance {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Label("Suggested recovery", systemImage: "cross.case")
+                            .font(.caption.weight(.semibold))
+                        Text(guidance)
+                            .font(.caption)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("The app does not change files or reset Steam automatically.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(10)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
+                    .padding(.horizontal, 10)
+                }
                 ScrollViewReader { reader in
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 6) {
