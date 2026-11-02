@@ -8,7 +8,7 @@ on:
       - 'strataforge-probe/**'
       - '.github/workflows/strataforge-probe.yml'
 permissions:
-  contents: write
+  contents: read
 jobs:
   build:
     runs-on: macos-15
@@ -33,32 +33,6 @@ jobs:
           test -x Payload/StrataForgeProbe.app/StrataForgeProbe
           zip -qr StrataForgeProbe-unsigned.ipa Payload
           unzip -t StrataForgeProbe-unsigned.ipa
-      - name: Publish minimal probe package to GitHub Releases
-        if: github.ref == 'refs/heads/feature/strataforge-feasibility' && github.event_name != 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        working-directory: strataforge-probe
-        run: |
-          set -euo pipefail
-          TAG="strataforge-probe-${{ github.run_number }}"
-          gh release create "$TAG" StrataForgeProbe-unsigned.ipa --repo "${{ github.repository }}" --title "StrataForge probe $TAG" --notes "Small unsigned Strata diagnostics guest. Not a Windows emulator or Steam downloader." --target "${{ github.sha }}"
-      - name: Add verified release to Strata app source
-        if: github.ref == 'refs/heads/feature/strataforge-feasibility' && github.event_name != 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          cp strataforge-probe/StrataForgeProbe-unsigned.ipa StrataForgeProbe-unsigned.ipa
-          for attempt in 1 2 3 4; do
-            git fetch origin main
-            git checkout -B strataforge-feed origin/main
-            python3 tools/publish_strataforge_probe.py "strataforge-probe-${{ github.run_number }}" "${{ github.run_number }}" StrataForgeProbe-unsigned.ipa apps.json
-            git add apps.json
-            git commit -m "source: publish StrataForge probe ${{ github.run_number }}" || exit 0
-            if git push origin HEAD:main; then exit 0; fi
-            sleep 3
-          done
-          exit 1
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
