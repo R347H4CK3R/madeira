@@ -1,9 +1,5 @@
 name: StrataForge PR build validation
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/strataforge-pr-validation.yml'
   pull_request:
     paths:
       - 'strataforge-probe/**'
