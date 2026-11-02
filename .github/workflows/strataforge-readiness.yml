@@ -1,0 +1,31 @@
+name: StrataForge readiness audit
+on:
+  push:
+    branches:
+      - feature/strataforge-feasibility
+    paths:
+      - 'docs/STRATAFORGE_VERIFICATION.md'
+      - 'tools/strataforge_readiness.py'
+      - '.github/workflows/strataforge-readiness.yml'
+      - '.gitmodules'
+      - 'build/**'
+      - 'app/**'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - name: Audit source and explicitly report missing native inputs
+        run: python3 tools/strataforge_readiness.py
+      - name: Upload readiness report
+        uses: actions/upload-artifact@v4
+        with:
+          name: strataforge-readiness-report
+          path: strataforge-readiness.json
+          retention-days: 30
