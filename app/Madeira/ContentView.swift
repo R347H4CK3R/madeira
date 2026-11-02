@@ -1199,6 +1199,8 @@ struct ContentView: View {
         return false
     }
     @State private var devSheet: SettingsSheet?
+    @State private var showStartupConsole = false
+    @State private var hasShownStartupConsole = false
     @StateObject private var logStore = LogStore.shared
     @StateObject private var jitCoordinator = JITCoordinator.shared
     @State private var jitStatus: JITStatus = .unknown
@@ -1251,6 +1253,26 @@ struct ContentView: View {
             // this if/else (two SwiftUI identities) — HARMLESS since
             // 2026-07-05: MetalHostView is a process-lifetime singleton;
             // a fresh placeholder only re-parents the same CAMetalLayer.
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    if library.current == nil {
+                        Button {
+                            showStartupConsole = true
+                        } label: {
+                            Label("Diagnostics", systemImage: "text.alignleft")
+                        }
+                        .accessibilityIdentifier("strataforgeDiagnostics")
+                    }
+                }
+            }
+            .sheet(isPresented: $showStartupConsole) {
+                StrataForgeLiveConsole()
+            }
+            .onAppear {
+                guard !hasShownStartupConsole else { return }
+                hasShownStartupConsole = true
+                showStartupConsole = true
+            }
             .navigationTitle("Madeira")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.regularMaterial, for: .navigationBar)
@@ -4413,5 +4435,78 @@ struct MappingPanel: View {
                     .fill(.white.opacity(on ? 0.36 : 0.12)))
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct StrataForgeLiveConsole: View {
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var store = LogStore.shared
+    @State private var verbose = true
+    @State private var followLatest = true
+    private func redacted(_ source: String) -> String {
+        // Export is deliberately conservative: it never sends raw machine logs
+        // or Steam account fields to GitHub.
+        let sensitive = ["token", "password", "cookie", "authorization", "steamguard",
+                         "steam_guard", "refresh", "bearer", "account", "login"]
+        if sensitive.contains(where: { source.localizedCaseInsensitiveContains($0) }) {
+            return "[redacted sensitive log line]"
+        }
+        if source.contains("://") || source.contains("@") || source.contains("\\\\Users\\\\") {
+            return "[redacted URL, identity or file path]"
+        }
+        return String(source.prefix(320))
+    }
+    private var visibleEntries: [LogStore.LogEntry] {
+        let values = store.entries
+        return verbose ? values : values.filter { $0.level == .error }
+    }
+    private var exportText: String {
+        let header = "StrataForge diagnostic preview (sanitized)\n" +
+                     "No Steam credentials or account data included.\n"
+        let lines = visibleEntries.suffix(200).map {
+            "[\($0.level.rawValue)] \(redacted($0.lastRaw)) (x\($0.count))"
+        }
+        return header + lines.joined(separator: "\n")
+    }
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 8) {
+                HStack {
+                    Toggle("Verbose", isOn: $verbose)
+                    Toggle("Follow", isOn: $followLatest)
+                }.toggleStyle(.switch).font(.caption)
+                ScrollViewReader { reader in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 6) {
+                            ForEach(visibleEntries) { item in
+                                Text("[\(item.level.rawValue)] \(redacted(item.lastRaw))" +
+                                     (item.count > 1 ? "  ×\(item.count)" : ""))
+                                    .font(.system(size: 11, design: .monospaced))
+                                    .textSelection(.enabled)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .id(item.id)
+                            }
+                        }.padding(.horizontal, 10)
+                    }
+                    .onChange(of: store.entries.count) { _ in
+                        if followLatest, let last = visibleEntries.last {
+                            reader.scrollTo(last.id, anchor: .bottom)
+                        }
+                    }
+                }
+                ShareLink(item: exportText) {
+                    Label("Export sanitized log", systemImage: "square.and.arrow.up")
+                        .frame(maxWidth: .infinity)
+                }.buttonStyle(.bordered)
+                    .padding(.horizontal)
+            }
+            .navigationTitle("Startup diagnostics")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Continue") { dismiss() }
+                }
+            }
+        }
     }
 }
