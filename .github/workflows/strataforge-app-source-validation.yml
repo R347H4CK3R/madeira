@@ -8,6 +8,22 @@ on:
 permissions:
   contents: read
 jobs:
+  portable-preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/strataforge-feasibility
+          submodules: false
+      - name: Validate crash journal, build registration, and sanitizers
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/strataforge_sanitize.py tools/strataforge_native_inputs.py tools/strataforge_patch_fex_host_diagnostics.py
+          python3 tools/test_strataforge_sanitize.py
+          test -s app/Madeira/StrataForgeCrashReporter.swift
+          grep -Fq 'StrataForgeCrashReporter.swift in Sources' app/Madeira.xcodeproj/project.pbxproj
+          grep -Fq 'StrataForgeCrashReporter.shared.launch()' app/Madeira/MadeiraApp.swift
+          grep -Fq 'Relay accepted diagnostic events' app/Madeira/StrataForgeCrashReporter.swift
   swift-source:
     runs-on: macos-15
     steps:
