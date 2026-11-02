@@ -18,6 +18,11 @@ jobs:
           submodules: false
       - name: Fetch only pinned FEX source
         run: git submodule update --init --depth 1 FEX
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install FEX CMake Python prerequisites
+        run: python -m pip install 'packaging>=24,<27' 'setuptools>=70,<81'
       - name: Native iPhone toolchain preflight
         run: |
           xcodebuild -version
