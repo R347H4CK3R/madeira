@@ -1,0 +1,58 @@
+name: StrataForge parallel runtime tracks
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    strategy:
+      fail-fast: false
+      matrix:
+        track: [wine, dxmt, steam, ios-ui]
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/strataforge-feasibility
+          submodules: recursive
+      - name: Native component readiness and independent checks
+        shell: bash
+        env:
+          TRACK: ${{ matrix.track }}
+        run: |
+          set -euo pipefail
+          mkdir -p reports
+          echo "Track: $TRACK" | tee "reports/$TRACK.txt"
+          xcodebuild -version | tee -a "reports/$TRACK.txt"
+          xcrun --sdk iphoneos --show-sdk-path | tee -a "reports/$TRACK.txt"
+          case "$TRACK" in
+            wine)
+              test -d wine/server
+              bash -n build/wineserver/build.sh build/ntdll-unix/build.sh
+              if [ ! -s app/Madeira/libwineserver.a ]; then echo "BLOCKED: patched wineserver build needs baseline libwineserver.a" | tee -a "reports/$TRACK.txt"; exit 2; fi
+              bash build/wineserver/build.sh 2>&1 | tee -a "reports/$TRACK.txt"
+              ;;
+            dxmt)
+              test -d dxmt/src
+              bash -n build/dxmt-ios/build.sh
+              if [ ! -d toolchains/llvm-ios-build ]; then echo "BLOCKED: LLVM iOS build missing" | tee -a "reports/$TRACK.txt"; exit 2; fi
+              bash build/dxmt-ios/build.sh 2>&1 | tee -a "reports/$TRACK.txt"
+              ;;
+            steam)
+              test -s app/Madeira/SteamGames.swift
+              test -s app/Madeira/SteamInstall.swift
+              python3 tools/test_strataforge_sanitize.py | tee -a "reports/$TRACK.txt"
+              echo "Steam sources present, live Steam sign-in unverified" | tee -a "reports/$TRACK.txt"
+              ;;
+            ios-ui)
+              brew install xcodegen
+              (cd strataforge-probe && xcodegen generate && xcodebuild -project StrataForgeProbe.xcodeproj -scheme StrataForgeProbe -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath ./DerivedData CODE_SIGNING_ALLOWED=NO build) 2>&1 | tee -a "reports/$TRACK.txt"
+              ;;
+          esac
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: strataforge-${{ matrix.track }}-report
+          path: reports/
+          if-no-files-found: warn
