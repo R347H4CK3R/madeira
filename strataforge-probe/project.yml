@@ -1,0 +1,19 @@
+name: StrataForgeProbe
+options:
+  bundleIdPrefix: com.r347h4ck3r
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  StrataForgeProbe:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.r347h4ck3r.strataforge.probe
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.0"
+        CODE_SIGNING_ALLOWED: NO
