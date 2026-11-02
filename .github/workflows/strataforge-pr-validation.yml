@@ -1,0 +1,40 @@
+name: StrataForge PR build validation
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/strataforge-pr-validation.yml'
+  pull_request:
+    paths:
+      - 'strataforge-probe/**'
+      - 'tools/strataforge_*.py'
+      - 'tools/test_strataforge_*.py'
+      - 'app/Madeira/**'
+      - '.github/workflows/strataforge-*.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate redaction tests
+        run: python3 tools/test_strataforge_sanitize.py
+      - name: Run readiness audit
+        run: python3 tools/strataforge_readiness.py
+      - name: Build small Strata diagnostic guest
+        run: |
+          brew install xcodegen
+          cd strataforge-probe
+          xcodegen generate
+          set -o pipefail
+          xcodebuild -project StrataForgeProbe.xcodeproj -scheme StrataForgeProbe -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath ./DerivedData CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: strataforge-pr-validation-logs
+          path: |
+            strataforge-probe/build.log
+            strataforge-readiness.json
+          if-no-files-found: warn
