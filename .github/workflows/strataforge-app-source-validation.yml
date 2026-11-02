@@ -1,6 +1,11 @@
 name: StrataForge app source validation
 on:
   workflow_dispatch:
+    inputs:
+      run_macos:
+        description: 'Request Xcode/macOS syntax verification (may queue if macOS minutes are exhausted)'
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
@@ -25,6 +30,7 @@ jobs:
           grep -Fq 'StrataForgeCrashReporter.shared.launch()' app/Madeira/MadeiraApp.swift
           grep -Fq 'Relay accepted diagnostic events' app/Madeira/StrataForgeCrashReporter.swift
   swift-source:
+    if: github.event_name == 'workflow_dispatch' && inputs.run_macos == true
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
