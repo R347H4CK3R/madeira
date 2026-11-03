@@ -18,7 +18,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           w = Path(".github/workflows/madeira-macos-build-probe.yml").read_text()
-          assert w.count("    runs-on: macos-latest") == 1, "Expected one macOS compiler job"
+          assert w.count("    runs-on: macos-15") == 1 and w.count("    runs-on: ") == 1, "Expected exactly one pinned macOS 15 compiler job"
           assert "  wineserver-native-probe:" in w
           assert "  probe:" not in w, "Redundant macOS dependency job returned"
           assert "brew install bison" in w, "Wine host Bison prerequisite missing"
