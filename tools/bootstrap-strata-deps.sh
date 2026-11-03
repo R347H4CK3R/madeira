@@ -11,6 +11,28 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
   echo "BLOCKED: Xcode and this iOS build chain require macOS. Current host: $(uname -s)"
   exit 2
 fi
+# On GitHub macOS runners, Meson and LLVM's objcopy are not guaranteed to be installed.
+# --install explicitly permits preparing these open-source build tools.
+if [[ "$MODE" == "--install" ]]; then
+  packages=()
+  command -v meson >/dev/null 2>&1 || packages+=(meson)
+  if ! command -v llvm-objcopy >/dev/null 2>&1; then
+    if ! test -x /opt/homebrew/opt/llvm/bin/llvm-objcopy && ! test -x /usr/local/opt/llvm/bin/llvm-objcopy; then
+      packages+=(llvm)
+    fi
+  fi
+  if (( ${#packages[@]} > 0 )); then
+    command -v brew >/dev/null 2>&1 || { echo "BLOCKED: install ${packages[*]} or provide Homebrew" >&2; exit 2; }
+    brew install "${packages[@]}"
+  fi
+  if command -v brew >/dev/null 2>&1; then
+    llvm_bin="$(brew --prefix llvm 2>/dev/null || true)/bin"
+    if [[ -x "$llvm_bin/llvm-objcopy" ]]; then
+      export PATH="$llvm_bin:$PATH"
+      if [[ -n "${GITHUB_PATH:-}" ]]; then printf '%s\\n' "$llvm_bin" >> "$GITHUB_PATH"; fi
+    fi
+  fi
+fi
 for tool in xcodebuild xcrun git cmake ninja python3 curl shasum tar cargo rustup meson pkg-config llvm-objcopy; do
   command -v "$tool" >/dev/null 2>&1 && ok "$tool" || warn "$tool"
 done
