@@ -1,0 +1,46 @@
+name: StrataForge PR build validation
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/Madeira/**'
+      - 'tests/host/**'
+      - 'tools/bootstrap-strata-deps.sh'
+      - 'tools/audit-strata-ipa-inputs.py'
+      - 'tools/verify-wineserver-ios-arm64.sh'
+      - '.github/workflows/strataforge-pr-validation.yml'
+      - '.github/workflows/madeira-macos-build-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: macos-15-intel
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm Xcode SDK and native project are readable
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path
+          xcodebuild -list -project app/Madeira.xcodeproj
+      - name: Test Strata JIT and dependency contract on PR source
+        run: |
+          set -euo pipefail
+          python3 tests/host/test-strata-bootstrap.py
+          python3 tests/host/check-jit-method.py
+          bash -n tools/bootstrap-strata-deps.sh tools/verify-wineserver-ios-arm64.sh
+          python3 -m py_compile tools/audit-strata-ipa-inputs.py
+      - name: Report honest IPA link readiness
+        shell: bash
+        run: |
+          python3 tools/audit-strata-ipa-inputs.py --output /tmp/strataforge-pr-ipa-inputs.json || test "$?" -eq 1
+          echo "PR source and input audit only; host debugger, Wine handshake, and physical-device rendering remain unverified." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: strataforge-pr-readiness-audit
+          path: /tmp/strataforge-pr-ipa-inputs.json
+          if-no-files-found: warn

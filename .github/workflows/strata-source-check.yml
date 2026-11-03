@@ -35,6 +35,14 @@ jobs:
           for key in ("llvm-mingw-20260421-ucrt-macos-universal", "bd85a3975723815cef28dbbd2ca2cb0c926f6b348a12a0453f39f7af273cb3f7"):
               assert key in w and key in bootstrap, f"Pinned PE toolchain mismatch: {key}"
           assert "if: always()" in w, "Compiler diagnostics must persist after failure"
+          assert "Verify all patched Wine archive objects have iOS arm64 architecture" in w
+          assert "Audit complete IPA link inputs" in w
+          assert "Package verified compiled IPA" in w
+          assert "steps.ipa-inputs.outputs.ready == 'true'" in w
+          assert "Madeira-Strata-unsigned-IPA" in w
+          assert Path("tools/verify-wineserver-ios-arm64.sh").is_file()
+          assert Path("tools/audit-strata-ipa-inputs.py").is_file()
+          assert "xcrun --sdk iphoneos lipo -archs" in Path("tools/verify-wineserver-ios-arm64.sh").read_text()
           print("PASS: single macOS Wine build job and diagnostic retention")
           PY
       - name: Check Wine server build scripts

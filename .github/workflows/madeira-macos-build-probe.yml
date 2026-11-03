@@ -115,6 +115,11 @@ jobs:
           test -s app/Madeira/libwineserver.a
           xcrun --sdk iphoneos ar t app/Madeira/libwineserver.a | tee /tmp/madeira-wineserver-patched-members.txt
           grep -Fxq 'request_ios.o' /tmp/madeira-wineserver-patched-members.txt
+      - name: Verify all patched Wine archive objects have iOS arm64 architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/verify-wineserver-ios-arm64.sh app/Madeira/libwineserver.a /tmp/madeira-wineserver-architecture-verified.txt
       - name: Save patched Wine server archive
         if: success()
         uses: actions/upload-artifact@v4
@@ -122,6 +127,45 @@ jobs:
           name: madeira-wineserver-ios-arm64-patched
           path: app/Madeira/libwineserver.a
           if-no-files-found: error
+      - name: Audit complete IPA link inputs
+        id: ipa-inputs
+        shell: bash
+        run: |
+          if python3 tools/audit-strata-ipa-inputs.py --output /tmp/madeira-ipa-prerequisites.json; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "No IPA: additional native build outputs or user-supplied runtime are required." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Build Madeira Debug app only if native inputs exist
+        if: steps.ipa-inputs.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -project app/Madeira.xcodeproj -scheme Madeira -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/MadeiraDerived" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' build 2>&1 | tee /tmp/madeira-ipa-build.log
+      - name: Package verified compiled IPA
+        if: steps.ipa-inputs.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$RUNNER_TEMP/MadeiraDerived/Build/Products/Debug-iphoneos/Madeira.app"
+          test -s "$app/Info.plist"
+          executable=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Info.plist")
+          test -s "$app/$executable"
+          xcrun --sdk iphoneos lipo -archs "$app/$executable" | grep -Eq '(^| )arm64($| )'
+          mkdir -p "$RUNNER_TEMP/ipa-staging/Payload"
+          ditto "$app" "$RUNNER_TEMP/ipa-staging/Payload/Madeira.app"
+          (cd "$RUNNER_TEMP/ipa-staging" && zip -qry "$GITHUB_WORKSPACE/Madeira-Strata-unsigned.ipa" Payload)
+          unzip -t "$GITHUB_WORKSPACE/Madeira-Strata-unsigned.ipa" | tail -1
+          shasum -a 256 "$GITHUB_WORKSPACE/Madeira-Strata-unsigned.ipa" | tee /tmp/madeira-ipa-sha256.txt
+      - name: Upload genuine IPA only after compiler and packaging succeed
+        if: steps.ipa-inputs.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Madeira-Strata-unsigned-IPA
+          path: Madeira-Strata-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
       - name: Preserve compiler diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -135,6 +179,10 @@ jobs:
             /tmp/madeira-wineserver-arch.txt
             /tmp/madeira-wineserver-patched.log
             /tmp/madeira-wineserver-patched-members.txt
+            /tmp/madeira-wineserver-architecture-verified.txt
+            /tmp/madeira-ipa-prerequisites.json
+            /tmp/madeira-ipa-build.log
+            /tmp/madeira-ipa-sha256.txt
           if-no-files-found: warn
       - name: Report base build result
         if: always()
