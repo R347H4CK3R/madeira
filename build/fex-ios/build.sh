@@ -8,6 +8,7 @@ B="$R/FEX/build-ios"
 # The pinned FEX Core.cpp references iOS-only log buffers from all hosts.
 # Guard that telemetry in a reproducible overlay rather than moving gitlinks.
 python3 "$R/tools/patch-fex-ios-core.py" "$R/FEX/FEXCore/Source/Interface/Core/Core.cpp"
+python3 "$R/tools/patch-fex-arm64-ios.py" "$R/FEX/FEXCore/Source/Utils/ArchHelpers/Arm64.cpp"
 if [ ! -f "$B/CMakeCache.txt" ]; then
     cmake -S "$R/FEX" -B "$B" -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_ARCHITECTURES=arm64 \
         -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 \
