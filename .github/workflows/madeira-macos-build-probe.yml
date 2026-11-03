@@ -22,7 +22,7 @@ jobs:
           xcodebuild -version
           sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
           test -d "$sdk"
-          printf 'int madeira_arm64_probe(void) { return 0; }\\n' > "$RUNNER_TEMP/madeira-arm64-probe.c"
+          printf 'int madeira_arm64_probe(void) { return 0; }\n' > "$RUNNER_TEMP/madeira-arm64-probe.c"
           xcrun --sdk iphoneos clang -arch arm64 -isysroot "$sdk" -miphoneos-version-min=17.0 -c "$RUNNER_TEMP/madeira-arm64-probe.c" -o "$RUNNER_TEMP/madeira-arm64-probe.o"
           xcrun --sdk iphoneos lipo -archs "$RUNNER_TEMP/madeira-arm64-probe.o" | grep -Eq '(^| )arm64($| )'
           echo "Intel macOS host can produce an iOS arm64 object; full Wine compilation remains unverified."
