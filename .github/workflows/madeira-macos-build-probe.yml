@@ -152,6 +152,27 @@ jobs:
             app/Madeira/libswresample.a
             app/Madeira/libavutil.a
           if-no-files-found: error
+      - name: Compile Rust pairing library for iOS arm64
+        id: pairing-ios
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup target add aarch64-apple-ios
+          bash build/rppairing-ios/build.sh 2>&1 | tee /tmp/madeira-rppairing-ios-build.log
+          lib="app/Madeira/libmadeira_rppairing.a"
+          test -s "$lib"
+          xcrun --sdk iphoneos ar t "$lib" > "$RUNNER_TEMP/madeira-rppairing-members.txt"
+          test -s "$RUNNER_TEMP/madeira-rppairing-members.txt"
+          xcrun --sdk iphoneos lipo -archs "$lib" | tee /tmp/madeira-rppairing-arch.txt
+          grep -Eq '(^| )arm64($| )' /tmp/madeira-rppairing-arch.txt
+      - name: Save verified Rust pairing library
+        if: steps.pairing-ios.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: madeira-rppairing-ios-arm64
+          path: app/Madeira/libmadeira_rppairing.a
+          if-no-files-found: error
       - name: Audit complete IPA link inputs
         id: ipa-inputs
         shell: bash
@@ -207,6 +228,8 @@ jobs:
             /tmp/madeira-wineserver-architecture-verified.txt
             /tmp/madeira-ipa-prerequisites.json
             /tmp/madeira-ffmpeg-ios-build.log
+            /tmp/madeira-rppairing-ios-build.log
+            /tmp/madeira-rppairing-arch.txt
             build/ffmpeg/obj/configure.log
             build/ffmpeg/obj/make.log
             /tmp/madeira-ipa-build.log
