@@ -20,11 +20,8 @@ if [ ! -s "$BASE_LIB" ]; then
     if [ -s "$APP_LIB" ]; then
         cp "$APP_LIB" "$BASE_LIB"
     else
-        echo "ERROR: Missing base libwineserver.a." >&2
-        echo "The wineserver script patches an existing archive; it cannot perform a clean build." >&2
-        echo "Expected nonempty archive at $BASE_LIB or $APP_LIB." >&2
-        echo "Generate the base from the pinned Wine server sources on macOS with the iPhoneOS SDK, then rerun." >&2
-        exit 1
+        echo "No prebuilt Wine server archive. Building from pinned Wine sources..."
+        bash "$BUILD_DIR/build-base.sh"
     fi
 fi
 if ! ar t "$BASE_LIB" >/dev/null 2>&1; then
