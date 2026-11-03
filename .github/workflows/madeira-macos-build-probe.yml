@@ -8,12 +8,24 @@ permissions:
 jobs:
   wineserver-native-probe:
     name: Compile pinned Wine server for iOS arm64
-    runs-on: macos-15
+    runs-on: macos-15-intel
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: false
+      - name: Verify Intel host and iOS ARM64 cross-compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "x86_64"
+          xcodebuild -version
+          sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
+          test -d "$sdk"
+          printf 'int madeira_arm64_probe(void) { return 0; }\\n' > "$RUNNER_TEMP/madeira-arm64-probe.c"
+          xcrun --sdk iphoneos clang -arch arm64 -isysroot "$sdk" -miphoneos-version-min=17.0 -c "$RUNNER_TEMP/madeira-arm64-probe.c" -o "$RUNNER_TEMP/madeira-arm64-probe.o"
+          xcrun --sdk iphoneos lipo -archs "$RUNNER_TEMP/madeira-arm64-probe.o" | grep -Eq '(^| )arm64($| )'
+          echo "Intel macOS host can produce an iOS arm64 object; full Wine compilation remains unverified."
       - name: Checkout exact Wine revision
         shell: bash
         run: |
@@ -33,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Wine configure on an Apple Silicon host requires PE/COFF tools too.
+          # Wine configure on the Intel macOS host requires ARM64 PE/COFF cross-tools.
           # This is the exact, checksummed open-source toolchain already pinned
           # in tools/bootstrap-strata-deps.sh; it is not an iOS SDK.
           archive="llvm-mingw-20260421-ucrt-macos-universal.tar.xz"
