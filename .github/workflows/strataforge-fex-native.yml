@@ -1,0 +1,56 @@
+name: StrataForge native FEX archive build
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/strataforge-fex-native.yml'
+permissions:
+  contents: read
+jobs:
+  fex-ios:
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/strataforge-feasibility
+          submodules: false
+      - name: Fetch only pinned FEX source
+        run: |
+          git submodule update --init --depth 1 FEX
+          git -C FEX submodule update --init --depth 1 --recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install FEX CMake Python prerequisites
+        run: python -m pip install 'packaging>=24,<27' 'setuptools>=70,<81'
+      - name: Native iPhone toolchain preflight
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path
+          cmake --version
+      - name: Guard iOS-only upstream debug counters
+        run: python tools/strataforge_patch_fex_host_diagnostics.py
+      - name: Build native FEX archives for iOS
+        run: |
+          set -o pipefail
+          bash build/fex-ios/build.sh 2>&1 | tee "$RUNNER_TEMP/fex-ios-build.log"
+      - name: Verify ARM64 native static archives
+        run: |
+          set -euo pipefail
+          for lib in FEX/build-ios/FEXCore/Source/libFEXCore.a FEX/build-ios/FEXCore/Source/libFEXCore_Base.a; do
+            test -s "$lib"
+            xcrun lipo -info "$lib" | grep -q arm64
+          done
+      - name: Retain verified build inputs and logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: StrataForge-FEX-iOS-native
+          path: |
+            FEX/build-ios/FEXCore/Source/libFEXCore.a
+            FEX/build-ios/FEXCore/Source/libFEXCore_Base.a
+            ${{ runner.temp }}/fex-ios-build.log
+          if-no-files-found: warn
+          retention-days: 30

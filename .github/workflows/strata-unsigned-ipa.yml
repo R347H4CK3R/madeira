@@ -1,0 +1,58 @@
+name: Madeira unsigned Strata IPA build
+on:
+  workflow_dispatch:
+  issue_comment:
+    types: [created]
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/strata-unsigned-ipa.yml'
+permissions:
+  contents: read
+jobs:
+  build-unsigned:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || (github.event_name == 'issue_comment' && github.event.issue.pull_request && github.event.issue.number == 2 && github.event.comment.body == '/build-unsigned-strata' && github.event.comment.user.login == 'R347H4CK3R')
+    runs-on: macos-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout experimental Strata branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/strata-wine-jit-20261030
+          submodules: recursive
+      - name: Verify dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/bootstrap-strata-deps.sh --check
+      - name: Build unsigned Debug app
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -project app/Madeira.xcodeproj -scheme Madeira -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/MadeiraDerived" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' build | tee "$RUNNER_TEMP/madeira-build.log"
+          test "${PIPESTATUS[0]}" -eq 0
+      - name: Package unsigned IPA only after successful build
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/MadeiraDerived/Build/Products/Debug-iphoneos/Madeira.app"
+          test -f "$APP/Info.plist"
+          mkdir -p "$RUNNER_TEMP/Payload"
+          ditto "$APP" "$RUNNER_TEMP/Payload/Madeira.app"
+          cd "$RUNNER_TEMP"
+          /usr/bin/zip -qry "$GITHUB_WORKSPACE/Madeira-Strata-unsigned.ipa" Payload
+          unzip -t "$GITHUB_WORKSPACE/Madeira-Strata-unsigned.ipa" | tail -1
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Madeira-Strata-unsigned-IPA
+          path: Madeira-Strata-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
+      - name: Save build log for debugging
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Madeira-unsigned-build-logs
+          path: ${{ runner.temp }}/madeira-build.log
+          if-no-files-found: ignore

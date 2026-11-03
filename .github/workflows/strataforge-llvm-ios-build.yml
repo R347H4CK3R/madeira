@@ -1,0 +1,32 @@
+name: StrataForge LLVM iOS native DXMT dependencies
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  llvm-ios:
+    runs-on: macos-15
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/strataforge-feasibility
+          submodules: false
+      - name: Configure and compile pinned LLVM
+        run: bash tools/bootstrap_llvm_ios_macos.sh
+      - name: Verify LLVM iOS archive architectures
+        run: |
+          set -euo pipefail
+          for name in LLVMPasses LLVMBitWriter; do
+            lib="toolchains/llvm-ios-build/lib/lib${name}.a"
+            test -s "$lib"
+            xcrun lipo -info "$lib" | grep -q arm64
+          done
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: strataforge-llvm-ios-verified
+          path: |
+            toolchains/llvm-ios-build/lib/*.a
+            toolchains/llvm-ios-build/include/
+          retention-days: 14

@@ -1,19 +1,26 @@
 name: StrataForge PR build validation
 on:
+  push:
+    branches: [fix/strata-wine-jit-20261030]
   pull_request:
     branches: [main]
     paths:
+      - 'strataforge-probe/**'
+      - 'tools/strataforge_*.py'
+      - 'tools/test_strataforge_*.py'
       - 'app/Madeira/**'
       - 'tests/host/**'
+      - 'build/wineserver/**'
       - 'tools/bootstrap-strata-deps.sh'
       - 'tools/audit-strata-ipa-inputs.py'
       - 'tools/verify-wineserver-ios-arm64.sh'
-      - '.github/workflows/strataforge-pr-validation.yml'
+      - '.github/workflows/strataforge-*.yml'
       - '.github/workflows/madeira-macos-build-probe.yml'
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
+
   audit:
     runs-on: macos-15-intel
     timeout-minutes: 30
@@ -43,4 +50,32 @@ jobs:
         with:
           name: strataforge-pr-readiness-audit
           path: /tmp/strataforge-pr-ipa-inputs.json
+          if-no-files-found: warn
+
+  baseline-feasibility-probe:
+    if: github.event_name != 'push'
+    runs-on: macos-15-intel
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/strataforge-feasibility
+      - name: Validate redaction tests
+        run: python3 tools/test_strataforge_sanitize.py
+      - name: Run readiness audit
+        run: python3 tools/strataforge_readiness.py
+      - name: Build small Strata diagnostic guest
+        run: |
+          brew install xcodegen
+          cd strataforge-probe
+          xcodegen generate
+          set -o pipefail
+          xcodebuild -project StrataForgeProbe.xcodeproj -scheme StrataForgeProbe -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath ./DerivedData CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: strataforge-pr-validation-logs
+          path: |
+            strataforge-probe/build.log
+            strataforge-readiness.json
           if-no-files-found: warn
