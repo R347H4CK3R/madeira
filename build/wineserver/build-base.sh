@@ -17,7 +17,8 @@ SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
 mkdir -p "$OBJ"
 
 # Derive inputs from the pinned Wine version's Makefile, not wildcard source globs.
-mapfile -t FILES < <(python3 - "$MANIFEST" <<'PY'
+MANIFEST_LIST="$OBJ/sources.list"
+python3 - "$MANIFEST" > "$MANIFEST_LIST" <<'PY'
 from pathlib import Path
 import re
 import sys
@@ -37,7 +38,8 @@ if not found:
     raise SystemExit('Missing SOURCES declaration in Wine manifest')
 print('\n'.join(sources))
 PY
-)
+FILES=()
+while IFS= read -r file; do [[ -n "$file" ]] && FILES+=("$file"); done < "$MANIFEST_LIST"
 (( ${#FILES[@]} >= 35 )) || { echo "ERROR: incomplete Wine server source manifest" >&2; exit 2; }
 flags=( -arch arm64 -isysroot "$SDK" -miphoneos-version-min=17.0 -O2
   -I"$WINE/include" -I"$WINE/include/wine" -I"$WINE/build-macos/include"
