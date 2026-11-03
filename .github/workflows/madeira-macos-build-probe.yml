@@ -8,7 +8,7 @@ permissions:
 jobs:
   wineserver-native-probe:
     name: Compile pinned Wine server for iOS arm64
-    runs-on: macos-latest
+    runs-on: macos-15
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
