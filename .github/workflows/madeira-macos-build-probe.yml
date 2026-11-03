@@ -71,7 +71,9 @@ jobs:
           set -euo pipefail
           mkdir -p wine/build-macos
           cd wine/build-macos
-          # Wine defaults to 32-bit on an x86_64 native host unless --enable-win64 is set.\n          # This produces a host configuration for the probe; ARM64 iOS ABI/runtime need separate validation.\n          CC=/usr/bin/clang CXX=/usr/bin/clang++ ../configure --enable-win64 --disable-tests --without-x --without-alsa --without-cups --without-dbus --without-gphoto --without-gstreamer --without-oss --without-pulse --without-sane --without-udev 2>&1 | tee /tmp/madeira-wine-configure.log
+          # Wine defaults to 32-bit on an x86_64 native host unless --enable-win64 is set.
+          # This produces a host configuration for the probe; ARM64 iOS ABI/runtime need separate validation.
+          CC=/usr/bin/clang CXX=/usr/bin/clang++ ../configure --enable-win64 --disable-tests --without-x --without-alsa --without-cups --without-dbus --without-gphoto --without-gstreamer --without-oss --without-pulse --without-sane --without-udev 2>&1 | tee /tmp/madeira-wine-configure.log
           test -s include/config.h
       - name: Compile Wine server base
         shell: bash
