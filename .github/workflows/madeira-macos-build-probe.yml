@@ -98,6 +98,26 @@ jobs:
           name: madeira-wineserver-ios-arm64-base
           path: build/wineserver/obj/libwineserver.a
           if-no-files-found: error
+      - name: Apply pinned Wine server iOS patches
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v llvm-objcopy >/dev/null 2>&1 && ! test -x /opt/homebrew/opt/llvm/bin/llvm-objcopy; then
+            brew install llvm
+          fi
+          export PATH="$(brew --prefix llvm)/bin:$PATH"
+          command -v llvm-objcopy
+          bash build/wineserver/build.sh all 2>&1 | tee /tmp/madeira-wineserver-patched.log
+          test -s app/Madeira/libwineserver.a
+          xcrun --sdk iphoneos ar t app/Madeira/libwineserver.a | tee /tmp/madeira-wineserver-patched-members.txt
+          grep -Fxq 'request_ios.o' /tmp/madeira-wineserver-patched-members.txt
+      - name: Save patched Wine server archive
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: madeira-wineserver-ios-arm64-patched
+          path: app/Madeira/libwineserver.a
+          if-no-files-found: error
       - name: Preserve compiler diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -109,14 +129,18 @@ jobs:
             /tmp/madeira-wineserver-base.log
             /tmp/madeira-wineserver-members.txt
             /tmp/madeira-wineserver-arch.txt
+            /tmp/madeira-wineserver-patched.log
+            /tmp/madeira-wineserver-patched-members.txt
           if-no-files-found: warn
       - name: Report base build result
         if: always()
         shell: bash
         run: |
           echo "### Pinned Wine server iOS-arm64 compile probe" >> "$GITHUB_STEP_SUMMARY"
-          if test -s build/wineserver/obj/libwineserver.a; then
-            echo "Candidate archive produced; complete IPA link and device runtime remain unverified." >> "$GITHUB_STEP_SUMMARY"
+          if test -s app/Madeira/libwineserver.a; then
+            echo "Patched Wine server archive produced; complete IPA link and device runtime remain unverified." >> "$GITHUB_STEP_SUMMARY"
+          elif test -s build/wineserver/obj/libwineserver.a; then
+            echo "Base Wine server archive produced; patched archive was not completed. See build logs." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "No candidate archive produced. See uploaded configure/compile diagnostics." >> "$GITHUB_STEP_SUMMARY"
           fi
