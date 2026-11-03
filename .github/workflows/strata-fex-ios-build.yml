@@ -1,0 +1,97 @@
+name: StrataForge FEX iOS native build
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'build/fex-ios/**'
+      - '.github/workflows/strata-fex-ios-build.yml'
+      - '.gitmodules'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fex-arm64:
+    name: Build pinned FEXCore iOS ARM64 libraries
+    runs-on: macos-15-intel
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - name: Checkout pinned FEX dependency tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git submodule sync --recursive
+          git submodule update --init --recursive FEX 2>&1 | tee /tmp/madeira-fex-checkout.log
+          test -s FEX/CMakeLists.txt
+          git -C FEX rev-parse HEAD | tee /tmp/madeira-fex-revision.txt
+      - name: Confirm Xcode ARM64 iOS compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path
+          command -v cmake
+          command -v ninja
+      - name: Build FEX native archives
+        shell: bash
+        run: |
+          set -o pipefail
+          bash build/fex-ios/build.sh 2>&1 | tee /tmp/madeira-fex-ios-build.log
+          test ${PIPESTATUS[0]} -eq 0
+      - name: Verify all seven required archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          libs=(
+            FEXCore/Source/libFEXCore.a
+            FEXCore/Source/libFEXCore_Base.a
+            FEXCore/Source/libJemallocLibs.a
+            External/fmt/libfmt.a
+            External/cephes/libcephes_128bit.a
+            External/xxhash/cmake_unofficial/libxxhash.a
+            External/SoftFloat-3e/libsoftfloat_3e.a
+          )
+          : > /tmp/madeira-fex-verified.txt
+          for rel in "${libs[@]}"; do
+            file="FEX/build-ios/$rel"
+            test -s "$file" || { echo "::error::Missing FEX archive: $file"; exit 1; }
+            xcrun --sdk iphoneos ar t "$file" > /tmp/madeira-fex-members.txt
+            test -s /tmp/madeira-fex-members.txt
+            echo "$file" | tee -a /tmp/madeira-fex-verified.txt
+          done
+      - name: Upload all verified native archives
+        uses: actions/upload-artifact@v4
+        with:
+          name: madeira-fex-ios-arm64-candidate
+          path: |
+            FEX/build-ios/FEXCore/Source/libFEXCore.a
+            FEX/build-ios/FEXCore/Source/libFEXCore_Base.a
+            FEX/build-ios/FEXCore/Source/libJemallocLibs.a
+            FEX/build-ios/External/fmt/libfmt.a
+            FEX/build-ios/External/cephes/libcephes_128bit.a
+            FEX/build-ios/External/xxhash/cmake_unofficial/libxxhash.a
+            FEX/build-ios/External/SoftFloat-3e/libsoftfloat_3e.a
+          if-no-files-found: error
+      - name: Preserve FEX compiler diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: madeira-fex-ios-diagnostics
+          path: |
+            /tmp/madeira-fex-checkout.log
+            /tmp/madeira-fex-revision.txt
+            /tmp/madeira-fex-ios-build.log
+            /tmp/madeira-fex-verified.txt
+          if-no-files-found: warn
+      - name: Report build status
+        if: always()
+        shell: bash
+        run: |
+          echo "### FEX iOS ARM64 archive build" >> "$GITHUB_STEP_SUMMARY"
+          if test -s /tmp/madeira-fex-verified.txt; then
+            echo "Seven archive paths verified. App link and device runtime remain untested." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "FEX archives incomplete; inspect preserved diagnostics." >> "$GITHUB_STEP_SUMMARY"
+          fi
