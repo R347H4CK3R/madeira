@@ -13,6 +13,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Guard macOS workflow against duplicate jobs
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          w = Path(".github/workflows/madeira-macos-build-probe.yml").read_text()
+          assert w.count("    runs-on: macos-latest") == 1, "Expected one macOS compiler job"
+          assert "  wineserver-native-probe:" in w
+          assert "  probe:" not in w, "Redundant macOS dependency job returned"
+          assert "brew install bison" in w, "Wine host Bison prerequisite missing"
+          assert "if: always()" in w, "Compiler diagnostics must persist after failure"
+          print("PASS: single macOS Wine build job and diagnostic retention")
+          PY
       - name: Check Wine server build scripts
         run: |
           bash -n build/wineserver/build-base.sh
