@@ -6,50 +6,10 @@ on:
 permissions:
   contents: read
 jobs:
-  probe:
-    runs-on: macos-latest
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: false
-      - name: Inspect Xcode and pinned submodules
-        shell: bash
-        run: |
-          set -uo pipefail
-          xcodebuild -version
-          xcrun --sdk iphoneos --show-sdk-path
-          git submodule sync --recursive
-          git submodule update --init --recursive 2>&1 | tee /tmp/madeira-submodules.log
-          test ${PIPESTATUS[0]} -eq 0 || { echo "::error::Pinned submodule commit unavailable; cannot safely build source"; exit 1; }
-      - name: Bootstrap recoverable dependencies
-        shell: bash
-        run: |
-          set -o pipefail
-          bash tools/bootstrap-strata-deps.sh --prepare 2>&1 | tee /tmp/madeira-bootstrap.log
-          test ${PIPESTATUS[0]} -eq 0
-      - name: Preserve diagnostic evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: madeira-build-prerequisite-logs
-          path: |
-            /tmp/madeira-submodules.log
-            /tmp/madeira-bootstrap.log
-          if-no-files-found: warn
-      - name: Build readiness report
-        if: always()
-        shell: bash
-        run: |
-          echo "### Madeira dependency verification" >> "$GITHUB_STEP_SUMMARY"
-          echo "Branch: $GITHUB_REF_NAME" >> "$GITHUB_STEP_SUMMARY"
-          echo "Missing toolchain/native archives must be built before Xcode compilation." >> "$GITHUB_STEP_SUMMARY"
-          if test -f /tmp/madeira-submodules.log; then tail -30 /tmp/madeira-submodules.log >> "$GITHUB_STEP_SUMMARY"; fi
-
   wineserver-native-probe:
     name: Compile pinned Wine server for iOS arm64
     runs-on: macos-latest
-    timeout-minutes: 40
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
