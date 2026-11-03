@@ -138,7 +138,8 @@ jobs:
           for lib in avformat avcodec swresample avutil; do
             file="app/Madeira/lib${lib}.a"
             test -s "$file"
-            xcrun --sdk iphoneos ar t "$file" | head -1
+            xcrun --sdk iphoneos ar t "$file" > "$RUNNER_TEMP/madeira-ffmpeg-${lib}-members.txt"
+            test -s "$RUNNER_TEMP/madeira-ffmpeg-${lib}-members.txt"
           done
       - name: Save verified FFmpeg native libraries
         if: steps.ffmpeg-ios.outcome == 'success'
