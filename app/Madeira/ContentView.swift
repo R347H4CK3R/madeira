@@ -1170,6 +1170,28 @@ struct MadeiraMetalView: UIViewRepresentable {
     func updateUIView(_ uiView: MetalBackedView, context: Context) {}
 }
 
+private enum StrataForgeRecovery {
+    static func guidance(for message: String) -> String {
+        let lower = message.lowercased()
+        if lower.contains("jit") || lower.contains("debugger") {
+            return "Recovery: verify Strata Launch with JIT on the guest process before retrying."
+        }
+        if lower.contains("memory") || lower.contains("allocation") || lower.contains("jetsam") {
+            return "Recovery: enable compact memory settings, lower resolution and restart the guest once."
+        }
+        if lower.contains("metal") || lower.contains("shader") || lower.contains("dxmt") {
+            return "Recovery: lower rendering resolution and inspect graphics diagnostics."
+        }
+        if lower.contains("steam") || lower.contains("depot") || lower.contains("license") {
+            return "Recovery: check Steam sign-in, ownership and downloaded files."
+        }
+        if lower.contains("wine") || lower.contains("wineserver") || lower.contains("socket") {
+            return "Recovery: restart the guest to clear Wine server state and capture launch diagnostics."
+        }
+        return "Recovery: save diagnostics and retry once with a lower-resolution profile; avoid repeated launch loops."
+    }
+}
+
 struct ContentView: View {
     /// iOS 26 and later blur content under the navigation bar themselves.
     private static var systemScrollEdge: Bool {
@@ -1177,6 +1199,8 @@ struct ContentView: View {
         return false
     }
     @State private var devSheet: SettingsSheet?
+    @State private var showStartupConsole = false
+    @State private var hasShownStartupConsole = false
     @StateObject private var logStore = LogStore.shared
     @StateObject private var jitCoordinator = JITCoordinator.shared
     @State private var jitStatus: JITStatus = .unknown
@@ -1229,7 +1253,27 @@ struct ContentView: View {
             // this if/else (two SwiftUI identities) — HARMLESS since
             // 2026-07-05: MetalHostView is a process-lifetime singleton;
             // a fresh placeholder only re-parents the same CAMetalLayer.
-            .navigationTitle("Madeira")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    if library.current == nil {
+                        Button {
+                            showStartupConsole = true
+                        } label: {
+                            Label("Diagnostics", systemImage: "text.alignleft")
+                        }
+                        .accessibilityIdentifier("strataforgeDiagnostics")
+                    }
+                }
+            }
+            .sheet(isPresented: $showStartupConsole) {
+                StrataForgeLiveConsole()
+            }
+            .onAppear {
+                guard !hasShownStartupConsole else { return }
+                hasShownStartupConsole = true
+                showStartupConsole = true
+            }
+            .navigationTitle("Madeira + StrataForge")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             // The library keeps a material bar only before iOS 26. From iOS 26 the
@@ -2424,7 +2468,7 @@ struct ContentView: View {
     private func startLibraryEntry(_ entry: LibraryEntry) {
         do { if entry.desktop != true { _ = try LibraryModel.executable(entry.launchRelativePath) }; try entry.validate() }
         catch {
-            library.error = error.localizedDescription
+            library.error = error.localizedDescription + "\n" + StrataForgeRecovery.guidance(for: error.localizedDescription)
             logStore.log("[launch-preflight] profile validation failed: \(error.localizedDescription)", level: .error)
             return
         }
@@ -3111,7 +3155,7 @@ struct ContentView: View {
         func fail(_ error: Error) {
             MadeiraDock.cleanup()
             SteamOwnedLibrary.shared.dockEnded()
-            MadeiraDockModel.shared.status = error.localizedDescription
+            MadeiraDockModel.shared.status = error.localizedDescription + "\n" + StrataForgeRecovery.guidance(for: error.localizedDescription)
             logStore.log("[madeira-dock] not started: \(error.localizedDescription)", level: .error)
             if inLibrary { library.error = error.localizedDescription }
         }
@@ -4391,5 +4435,115 @@ struct MappingPanel: View {
                     .fill(.white.opacity(on ? 0.36 : 0.12)))
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct StrataForgeLiveConsole: View {
+    @ObservedObject private var crashReporter = StrataForgeCrashReporter.shared
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var store = LogStore.shared
+    @State private var verbose = true
+    @State private var followLatest = true
+    private func redacted(_ source: String) -> String {
+        // Export is deliberately conservative: it never sends raw machine logs
+        // or Steam account fields to GitHub.
+        let sensitive = ["token", "password", "cookie", "authorization", "steamguard",
+                         "steam_guard", "refresh", "bearer", "account", "login"]
+        if sensitive.contains(where: { source.localizedCaseInsensitiveContains($0) }) {
+            return "[redacted sensitive log line]"
+        }
+        if source.contains("://") || source.contains("@") || source.contains("\\\\Users\\\\") {
+            return "[redacted URL, identity or file path]"
+        }
+        return String(source.prefix(320))
+    }
+    private var visibleEntries: [LogStore.LogEntry] {
+        let values = store.entries
+        return verbose ? values : values.filter { $0.level == .error }
+    }
+    private var latestErrorGuidance: String? {
+        guard let entry = store.entries.last(where: { $0.level == .error }) else { return nil }
+        return StrataForgeRecovery.guidance(for: entry.lastRaw)
+    }
+    private var exportText: String {
+        let header = "StrataForge diagnostic preview (sanitized)\n" +
+                     "No Steam credentials or account data included.\n"
+        let lines = visibleEntries.suffix(200).map {
+            "[\($0.level.rawValue)] \(redacted($0.lastRaw)) (x\($0.count))"
+        }
+        return header + lines.joined(separator: "\n")
+    }
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 8) {
+                HStack {
+                    Toggle("Verbose", isOn: $verbose)
+                    Toggle("Follow", isOn: $followLatest)
+                }.toggleStyle(.switch).font(.caption)
+                if let guidance = latestErrorGuidance {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Label("Suggested recovery", systemImage: "cross.case")
+                            .font(.caption.weight(.semibold))
+                        Text(guidance)
+                            .font(.caption)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("The app does not change files or reset Steam automatically.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(10)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
+                    .padding(.horizontal, 10)
+                }
+                ScrollViewReader { reader in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 6) {
+                            ForEach(visibleEntries) { item in
+                                Text("[\(item.level.rawValue)] \(redacted(item.lastRaw))" +
+                                     (item.count > 1 ? "  ×\(item.count)" : ""))
+                                    .font(.system(size: 11, design: .monospaced))
+                                    .textSelection(.enabled)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .id(item.id)
+                            }
+                        }.padding(.horizontal, 10)
+                    }
+                    .onChange(of: store.entries.count) { _ in
+                        if followLatest, let last = visibleEntries.last {
+                            reader.scrollTo(last.id, anchor: .bottom)
+                        }
+                    }
+                }
+                Toggle("Enable automatic event reporting", isOn: $crashReporter.enabled)
+                TextField("HTTPS relay URL", text: $crashReporter.relayURL)
+                    .textFieldStyle(.roundedBorder)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Text(crashReporter.lastStatus)
+                    .font(.caption)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+                ShareLink(item: crashReporter.sanitizedReport) {
+                    Label("Export crash event journal", systemImage: "doc.text")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .padding(.horizontal)
+                ShareLink(item: exportText) {
+                    Label("Export sanitized log", systemImage: "square.and.arrow.up")
+                        .frame(maxWidth: .infinity)
+                }.buttonStyle(.bordered)
+                    .padding(.horizontal)
+            }
+            .navigationTitle("Startup diagnostics")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Continue") { dismiss() }
+                }
+            }
+        }
     }
 }

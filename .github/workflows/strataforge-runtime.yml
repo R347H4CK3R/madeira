@@ -1,0 +1,108 @@
+name: StrataForge Wine and Steam runtime candidate
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/strataforge-feasibility]
+    paths:
+      - 'app/**'
+      - 'tools/publish_strataforge_runtime.py'
+      - 'tools/strataforge_native_inputs.py'
+      - '.github/workflows/strataforge-runtime.yml'
+permissions:
+  contents: write
+concurrency:
+  group: strataforge-runtime-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  runtime:
+    runs-on: macos-15
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Check complete native dependency tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git submodule status --recursive | tee "$RUNNER_TEMP/submodules.txt"
+          if grep -Eq '^[-+U]' "$RUNNER_TEMP/submodules.txt"; then
+            echo "::error::Native submodule revisions are missing or inconsistent. Runtime cannot be published."
+            exit 1
+          fi
+      - name: Acquire verified cross compiler and LLVM libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/bootstrap_llvm_mingw_macos.sh
+          bash tools/bootstrap_llvm_ios_macos.sh
+      - name: Show exact native missing inputs
+        run: |
+          python3 tools/strataforge_native_inputs.py
+      - name: Require real Wine FEX DXMT and Steam sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          for dir in FEX wine dxmt madeira-dock; do
+            test -d "$dir" && test -n "$(ls -A "$dir")" || { echo "::error::Missing required runtime source: $dir"; exit 1; }
+          done
+          test -s app/Madeira/SteamGames.swift
+          test -s app/Madeira/SteamInstall.swift
+          test -s app/Madeira.xcodeproj/project.pbxproj
+          for lib in FEX/build-ios/FEXCore/Source/libFEXCore.a FEX/build-ios/FEXCore/Source/libFEXCore_Base.a app/Madeira/libwineserver.a; do
+            if [ ! -s "$lib" ]; then echo "::error::Missing compiled runtime library $lib"; exit 1; fi
+          done
+      - name: Compile full runtime, fail closed if dependencies are absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -project app/Madeira.xcodeproj -scheme Madeira -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/StrataForgeDerived" CODE_SIGNING_ALLOWED=NO build 2>&1 | tee "$RUNNER_TEMP/strataforge-build.log"
+      - name: Package one Strata-compatible unsigned runtime IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/StrataForgeDerived/Build/Products/Debug-iphoneos/Madeira.app"
+          test -s "$APP/Madeira"
+          test -f "$APP/Info.plist"
+          # FEX/Wine/DXMT are primarily static .a archives linked into the
+          # executable; a Frameworks directory is NOT required for static linking.
+          xcrun otool -hv "$APP/Madeira" | grep -q ARM64 || { echo "::error::Not an ARM64 iOS executable"; exit 1; }
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist" | grep -Fx Madeira
+          mkdir -p "$RUNNER_TEMP/Payload"
+          ditto "$APP" "$RUNNER_TEMP/Payload/Madeira.app"
+          (cd "$RUNNER_TEMP" && zip -qry "$GITHUB_WORKSPACE/StrataForge-Wine-Steam.ipa" Payload)
+          unzip -t StrataForge-Wine-Steam.ipa | tail -1
+      - name: Publish candidate only after full runtime build
+        if: github.ref == 'refs/heads/feature/strataforge-feasibility'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="strataforge-runtime-${{ github.run_number }}"
+          gh release create "$TAG" StrataForge-Wine-Steam.ipa --title "StrataForge Wine/Steam candidate $TAG" --notes "Full-runtime build candidate only. JIT, Steam login and game execution inside Strata NOT device verified." --target "${{ github.sha }}"
+          gh release view "$TAG" --json assets --jq '.assets[].name' | grep -Fx 'StrataForge-Wine-Steam.ipa'
+      - name: Update Strata source only after candidate release
+        if: github.ref == 'refs/heads/feature/strataforge-feasibility'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cp tools/publish_strataforge_runtime.py "$RUNNER_TEMP/publish_strataforge_runtime.py"
+          for attempt in 1 2 3 4; do
+            git fetch origin main
+            git checkout -B runtime-feed origin/main
+            python3 "$RUNNER_TEMP/publish_strataforge_runtime.py" "strataforge-runtime-${{ github.run_number }}" "${{ github.run_number }}" StrataForge-Wine-Steam.ipa apps.json
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add apps.json
+            git commit -m "source: StrataForge runtime ${{ github.run_number }}" || exit 0
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 3
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: StrataForge-runtime-failure-logs
+          path: ${{ runner.temp }}/strataforge-build.log
+          if-no-files-found: warn
