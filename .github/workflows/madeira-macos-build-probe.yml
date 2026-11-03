@@ -29,13 +29,37 @@ jobs:
           brew install bison
           echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
           "$(brew --prefix bison)/bin/bison" --version | head -1
+      - name: Install pinned ARM64 PE cross-toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Wine configure on an Apple Silicon host requires PE/COFF tools too.
+          # This is the exact, checksummed open-source toolchain already pinned
+          # in tools/bootstrap-strata-deps.sh; it is not an iOS SDK.
+          archive="llvm-mingw-20260421-ucrt-macos-universal.tar.xz"
+          root="llvm-mingw-20260421-ucrt-macos-universal"
+          url="https://github.com/mstorsjo/llvm-mingw/releases/download/20260421/$archive"
+          sha256="bd85a3975723815cef28dbbd2ca2cb0c926f6b348a12a0453f39f7af273cb3f7"
+          curl --fail --location --retry 3 --retry-delay 4 "$url" -o "$RUNNER_TEMP/$archive"
+          echo "$sha256  $RUNNER_TEMP/$archive" | shasum -a 256 -c -
+          mkdir -p toolchains
+          tar -xf "$RUNNER_TEMP/$archive" -C toolchains
+          toolbin="$GITHUB_WORKSPACE/toolchains/$root/bin"
+          test -d "$toolbin"
+          export PATH="$toolbin:$PATH"
+          echo "$toolbin" >> "$GITHUB_PATH"
+          # Distinguish absent cross-compilation tools from Wine compiler errors.
+          command -v aarch64-w64-mingw32-clang || command -v aarch64-w64-mingw32-gcc
+          command -v llvm-dlltool
+          command -v lld-link
+          echo "Pinned ARM64 Windows PE toolchain available; iOS native compilation is not yet verified."
       - name: Generate Wine host configuration
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p wine/build-macos
           cd wine/build-macos
-          ../configure --disable-tests --without-x --without-alsa --without-cups --without-dbus --without-gphoto --without-gstreamer --without-oss --without-pulse --without-sane --without-udev 2>&1 | tee /tmp/madeira-wine-configure.log
+          CC=/usr/bin/clang CXX=/usr/bin/clang++ ../configure --disable-tests --without-x --without-alsa --without-cups --without-dbus --without-gphoto --without-gstreamer --without-oss --without-pulse --without-sane --without-udev 2>&1 | tee /tmp/madeira-wine-configure.log
           test -s include/config.h
       - name: Compile Wine server base
         shell: bash
