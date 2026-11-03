@@ -22,6 +22,14 @@ jobs:
           assert "  wineserver-native-probe:" in w
           assert "  probe:" not in w, "Redundant macOS dependency job returned"
           assert "brew install bison" in w, "Wine host Bison prerequisite missing"
+          bootstrap = Path("tools/bootstrap-strata-deps.sh").read_text()
+          assert "Install pinned ARM64 PE cross-toolchain" in w, "ARM64 PE compiler setup missing"
+          assert "shasum -a 256 -c -" in w, "PE toolchain download must verify SHA-256"
+          assert "aarch64-w64-mingw32-clang" in w, "PE cross-compiler is not tested"
+          assert "CC=/usr/bin/clang CXX=/usr/bin/clang++" in w, "Host compiler must stay native"
+          import re
+          for key in ("llvm-mingw-20260421-ucrt-macos-universal", "bd85a3975723815cef28dbbd2ca2cb0c926f6b348a12a0453f39f7af273cb3f7"):
+              assert key in w and key in bootstrap, f"Pinned PE toolchain mismatch: {key}"
           assert "if: always()" in w, "Compiler diagnostics must persist after failure"
           print("PASS: single macOS Wine build job and diagnostic retention")
           PY
