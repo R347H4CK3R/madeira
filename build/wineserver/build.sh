@@ -31,7 +31,11 @@ if ! ar t "$BASE_LIB" >/dev/null 2>&1; then
     echo "ERROR: Base libwineserver.a is not a readable static archive: $BASE_LIB" >&2
     exit 1
 fi
-if ! ar t "$BASE_LIB" | grep -q '^request\\.o
+if ! ar t "$BASE_LIB" | grep -Fxq 'request.o'; then
+    echo "ERROR: Base libwineserver.a lacks request.o: $BASE_LIB" >&2
+    echo "This is not a complete Wine server base archive; refusing to patch it." >&2
+    exit 1
+fi
 
 CC_FLAGS=(
     -arch arm64 -isysroot "$SDK" -miphoneos-version-min=17.0 -O2
