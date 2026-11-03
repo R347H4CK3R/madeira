@@ -29,7 +29,7 @@ if [[ "$MODE" == "--install" ]]; then
     llvm_bin="$(brew --prefix llvm 2>/dev/null || true)/bin"
     if [[ -x "$llvm_bin/llvm-objcopy" ]]; then
       export PATH="$llvm_bin:$PATH"
-      if [[ -n "${GITHUB_PATH:-}" ]]; then printf '%s\\n' "$llvm_bin" >> "$GITHUB_PATH"; fi
+      if [[ -n "${GITHUB_PATH:-}" ]]; then echo "$llvm_bin" >> "$GITHUB_PATH"; fi
     fi
   fi
 fi
