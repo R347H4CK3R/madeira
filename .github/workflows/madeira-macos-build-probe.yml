@@ -2,8 +2,6 @@ name: Madeira macOS dependency and build probe
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [fix/strata-wine-jit-20261030]
   workflow_dispatch:
 permissions:
   contents: read
@@ -28,7 +26,8 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          bash tools/bootstrap-strata-deps.sh --install 2>&1 | tee /tmp/madeira-bootstrap.log
+          bash tools/bootstrap-strata-deps.sh --prepare 2>&1 | tee /tmp/madeira-bootstrap.log
+          test ${PIPESTATUS[0]} -eq 0
       - name: Preserve diagnostic evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -63,6 +62,13 @@ jobs:
           git submodule update --init wine
           test -s wine/server/Makefile.in
           git -C wine rev-parse HEAD | tee /tmp/madeira-wine-revision.txt
+      - name: Install required Wine host build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew install bison
+          echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+          "$(brew --prefix bison)/bin/bison" --version | head -1
       - name: Generate Wine host configuration
         shell: bash
         run: |
