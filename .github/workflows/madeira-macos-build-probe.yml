@@ -78,6 +78,26 @@ jobs:
           bash build/wineserver/build-base.sh 2>&1 | tee /tmp/madeira-wineserver-base.log
           test ${PIPESTATUS[0]} -eq 0
           xcrun --sdk iphoneos ar t build/wineserver/obj/libwineserver.a | grep -Fx 'request.o'
+      - name: Validate candidate archive architecture
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/wineserver/obj/libwineserver.a
+          xcrun --sdk iphoneos ar t build/wineserver/obj/libwineserver.a | tee /tmp/madeira-wineserver-members.txt
+          test "$(grep -Fxc 'request.o' /tmp/madeira-wineserver-members.txt)" -eq 1
+          mkdir -p /tmp/madeira-wineserver-architecture
+          cd /tmp/madeira-wineserver-architecture
+          xcrun --sdk iphoneos ar x "$GITHUB_WORKSPACE/build/wineserver/obj/libwineserver.a" request.o
+          xcrun --sdk iphoneos lipo -archs request.o | tee /tmp/madeira-wineserver-arch.txt
+          grep -Eq '(^| )arm64($| )' /tmp/madeira-wineserver-arch.txt
+      - name: Save candidate native archive
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: madeira-wineserver-ios-arm64-base
+          path: build/wineserver/obj/libwineserver.a
+          if-no-files-found: error
       - name: Preserve compiler diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -87,6 +107,8 @@ jobs:
             /tmp/madeira-wine-revision.txt
             /tmp/madeira-wine-configure.log
             /tmp/madeira-wineserver-base.log
+            /tmp/madeira-wineserver-members.txt
+            /tmp/madeira-wineserver-arch.txt
           if-no-files-found: warn
       - name: Report base build result
         if: always()
