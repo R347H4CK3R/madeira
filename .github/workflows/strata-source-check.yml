@@ -13,6 +13,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Check Wine server build scripts
+        run: |
+          bash -n build/wineserver/build-base.sh
+          bash -n build/wineserver/build.sh
+          python3 - <<'PY'
+          from pathlib import Path
+          base = Path("build/wineserver/build-base.sh").read_text()
+          patch = Path("build/wineserver/build.sh").read_text()
+          assert 'server/Makefile.in' in base
+          assert 'FILES=()' in base
+          assert 'xcrun --sdk iphoneos clang' in base
+          assert 'bash "$BUILD_DIR/build-base.sh"' in patch
+          assert "grep -Fxq 'request.o'" in patch
+          print("PASS: clean Wine server source-build path is wired")
+          print("NOTE: native compile and runtime remain unverified")
+          PY
       - name: Test dependency bootstrap failure handling
         run: |
           python3 tests/host/test-strata-bootstrap.py
