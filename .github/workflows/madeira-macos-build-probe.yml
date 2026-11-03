@@ -46,3 +46,55 @@ jobs:
           echo "Branch: $GITHUB_REF_NAME" >> "$GITHUB_STEP_SUMMARY"
           echo "Missing toolchain/native archives must be built before Xcode compilation." >> "$GITHUB_STEP_SUMMARY"
           if test -f /tmp/madeira-submodules.log; then tail -30 /tmp/madeira-submodules.log >> "$GITHUB_STEP_SUMMARY"; fi
+
+  wineserver-native-probe:
+    name: Compile pinned Wine server for iOS arm64
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - name: Checkout exact Wine revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          git submodule sync --recursive
+          git submodule update --init wine
+          test -s wine/server/Makefile.in
+          git -C wine rev-parse HEAD | tee /tmp/madeira-wine-revision.txt
+      - name: Generate Wine host configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p wine/build-macos
+          cd wine/build-macos
+          ../configure --disable-tests --without-x --without-alsa --without-cups --without-dbus --without-gphoto --without-gstreamer --without-oss --without-pulse --without-sane --without-udev 2>&1 | tee /tmp/madeira-wine-configure.log
+          test -s include/config.h
+      - name: Compile Wine server base
+        shell: bash
+        run: |
+          set -o pipefail
+          bash build/wineserver/build-base.sh 2>&1 | tee /tmp/madeira-wineserver-base.log
+          test ${PIPESTATUS[0]} -eq 0
+          xcrun --sdk iphoneos ar t build/wineserver/obj/libwineserver.a | grep -Fx 'request.o'
+      - name: Preserve compiler diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: madeira-wineserver-compile-diagnostics
+          path: |
+            /tmp/madeira-wine-revision.txt
+            /tmp/madeira-wine-configure.log
+            /tmp/madeira-wineserver-base.log
+          if-no-files-found: warn
+      - name: Report base build result
+        if: always()
+        shell: bash
+        run: |
+          echo "### Pinned Wine server iOS-arm64 compile probe" >> "$GITHUB_STEP_SUMMARY"
+          if test -s build/wineserver/obj/libwineserver.a; then
+            echo "Candidate archive produced; complete IPA link and device runtime remain unverified." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No candidate archive produced. See uploaded configure/compile diagnostics." >> "$GITHUB_STEP_SUMMARY"
+          fi
