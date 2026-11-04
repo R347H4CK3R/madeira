@@ -164,6 +164,32 @@ echo "=== winemetal unix (Objective-C) ==="
 compile_objc "$DXMT_SRC/winemetal/unix/winemetal_unix.c" winemetal_unix
 compile_objc "$DXMT_SRC/winemetal/unix/cache.c"          cache
 
+# airconv_context.cpp embeds three precompiled Metal AIR modules. DXMT's Meson
+# build normally generates these headers (metalir_generator + hexdump_generator),
+# but this standalone iOS archive build must do the same before compiling C++.
+# The AIR input targets macOS-format Metal IR as upstream does: LLVM bitcode is
+# linked into shader modules by airconv, not executed as host code.
+echo "=== airconv shader bitcode headers (Metal 3.1) ==="
+mkdir -p "$BUILD_DIR/shader-headers"
+for shader in air_msad air_samplepos air_tessellation; do
+    shader_src="$DXMT_SRC/airconv/shaders/$shader.metal"
+    shader_air="$BUILD_DIR/shader-headers/$shader.air"
+    shader_header="$BUILD_DIR/shader-headers/$shader.h"
+    if [ ! -s "$shader_src" ]; then
+        echo "Missing DXMT Metal shader: $shader_src" >&2
+        exit 1
+    fi
+    if [ ! -s "$shader_header" ] || [ "$shader_src" -nt "$shader_header" ] || [ "$0" -nt "$shader_header" ]; then
+        xcrun -sdk macosx metal -std=metal3.1 --target=air64-apple-macos14.0 -o "$shader_air" -c "$shader_src"
+        test -s "$shader_air" || { echo "Metal AIR generation failed: $shader" >&2; exit 1; }
+        xxd -n "$shader" -i "$shader_air" "$shader_header"
+        test -s "$shader_header" || { echo "Metal IR header generation failed: $shader" >&2; exit 1; }
+        echo "  $shader.h                                OK"
+    else
+        echo "  $shader.h                                CACHED"
+    fi
+done
+
 echo "=== airconv (C++ 20, needs LLVM headers) ==="
 for cpp in airconv_context.cpp air_type.cpp air_signature.cpp air_operations.cpp \
            dxbc_converter.cpp dxbc_converter_gs.cpp dxbc_converter_ts.cpp \
