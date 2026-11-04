@@ -32,6 +32,7 @@ jobs:
             app/Madeira/libavcodec.a
             app/Madeira/libswresample.a
             app/Madeira/libavutil.a
+            toolchains/ffmpeg-ios/include/
           if-no-files-found: error
       - name: Preserve FFmpeg diagnostics
         if: always()
@@ -90,6 +91,8 @@ jobs:
             xcrun --sdk iphoneos ar t "$archive" > "$RUNNER_TEMP/gnutls-${lib}-members.txt"
             test -s "$RUNNER_TEMP/gnutls-${lib}-members.txt"
           done
+          mkdir -p app/Madeira
+          for lib in gnutls nettle hogweed gmp; do cp "toolchains/gnutls-ios/lib/lib${lib}.a" "app/Madeira/lib${lib}.a"; done
       - name: Upload compiled crypto archives and headers
         uses: actions/upload-artifact@v4
         with:
@@ -100,6 +103,10 @@ jobs:
             toolchains/gnutls-ios/lib/libhogweed.a
             toolchains/gnutls-ios/lib/libgmp.a
             toolchains/gnutls-ios/include/
+            app/Madeira/libgnutls.a
+            app/Madeira/libnettle.a
+            app/Madeira/libhogweed.a
+            app/Madeira/libgmp.a
           if-no-files-found: error
       - name: Preserve crypto build diagnostics
         if: always()
@@ -110,4 +117,98 @@ jobs:
             ${{ runner.temp }}/gnutls-build.log
             build/gnutls-ios/obj/*-configure.log
             build/gnutls-ios/obj/*-make.log
+          if-no-files-found: warn
+
+  wine-unix-ios:
+    name: Wine ${{ matrix.component }} unix library iOS arm64
+    needs: [ffmpeg-ios, gnutls-ios]
+    runs-on: macos-15-intel
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [ntdll, win32u]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - name: Restore compiled FFmpeg and crypto dependencies
+        uses: actions/download-artifact@v4
+        with:
+          name: madeira-parallel-ffmpeg-ios-arm64
+          path: .
+      - name: Restore compiled GnuTLS and crypto dependencies
+        uses: actions/download-artifact@v4
+        with:
+          name: madeira-parallel-gnutls-ios-arm64
+          path: .
+      - name: Verify restored native dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          for lib in avformat avcodec swresample avutil gnutls nettle hogweed gmp; do
+            test -s "app/Madeira/lib${lib}.a"
+          done
+          test -s toolchains/gnutls-ios/lib/libgnutls.a
+          test -d toolchains/gnutls-ios/include
+          test -d toolchains/ffmpeg-ios/include
+      - name: Fetch exact pinned Wine source with retries
+        shell: bash
+        run: |
+          set -euo pipefail
+          git submodule sync --recursive
+          git config --local http.version HTTP/1.1
+          for attempt in 1 2 3; do
+            if git -c http.version=HTTP/1.1 submodule update --init --depth 1 wine; then break; fi
+            if [ "$attempt" -eq 3 ]; then echo "Wine checkout failed after retries" >&2; exit 1; fi
+            sleep $((5 * attempt))
+          done
+          expected="$(git rev-parse HEAD:wine)"
+          actual="$(git -C wine rev-parse HEAD)"
+          test "$expected" = "$actual"
+          test -s wine/server/Makefile.in
+      - name: Configure pinned Wine build headers
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew install bison
+          export PATH="$(brew --prefix bison)/bin:$PATH"
+          archive="llvm-mingw-20260421-ucrt-macos-universal.tar.xz"
+          root="llvm-mingw-20260421-ucrt-macos-universal"
+          curl --fail --location --retry 3 --retry-delay 4 "https://github.com/mstorsjo/llvm-mingw/releases/download/20260421/$archive" -o "$RUNNER_TEMP/$archive"
+          echo "bd85a3975723815cef28dbbd2ca2cb0c926f6b348a12a0453f39f7af273cb3f7  $RUNNER_TEMP/$archive" | shasum -a 256 -c -
+          mkdir -p toolchains
+          tar -xf "$RUNNER_TEMP/$archive" -C toolchains
+          export PATH="$GITHUB_WORKSPACE/toolchains/$root/bin:$PATH"
+          command -v aarch64-w64-mingw32-clang
+          mkdir -p wine/build-macos
+          (
+            cd wine/build-macos
+            CC=/usr/bin/clang CXX=/usr/bin/clang++ ../configure --enable-win64 --disable-tests --without-x --without-alsa --without-cups --without-dbus --without-gphoto --without-gstreamer --without-oss --without-pulse --without-sane
+          ) 2>&1 | tee "$RUNNER_TEMP/wine-unix-configure.log"
+          test -s wine/build-macos/include/config.h
+      - name: Compile Wine unix iOS archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash "build/${{ matrix.component }}-unix/build.sh" 2>&1 | tee "$RUNNER_TEMP/wine-${{ matrix.component }}-unix-build.log"
+          archive="app/Madeira/lib${{ matrix.component }}_unix.a"
+          test -s "$archive"
+          xcrun --sdk iphoneos ar t "$archive" > "$RUNNER_TEMP/wine-${{ matrix.component }}-members.txt"
+          test -s "$RUNNER_TEMP/wine-${{ matrix.component }}-members.txt"
+      - name: Upload verified Wine native archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: madeira-wine-${{ matrix.component }}-unix-ios-arm64
+          path: app/Madeira/lib${{ matrix.component }}_unix.a
+          if-no-files-found: error
+      - name: Preserve Wine unix compile diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: madeira-wine-${{ matrix.component }}-unix-logs
+          path: |
+            ${{ runner.temp }}/wine-unix-configure.log
+            ${{ runner.temp }}/wine-${{ matrix.component }}-unix-build.log
+            build/${{ matrix.component }}-unix/obj/*.err
           if-no-files-found: warn
