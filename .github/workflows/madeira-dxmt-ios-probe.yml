@@ -85,7 +85,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cmake --build toolchains/llvm-ios-build --parallel 4 \
+          # Build only static LLVM archives. A plain "all" build also tries
+          # to link optional modules such as LLVMHello.dylib, whose ELF/COFF
+          # .def export file is not accepted by Apple's Mach-O linker.
+          # None of those modules or executable tools is used by DXMT.
+          mapfile -t llvm_archive_targets < <(
+            ninja -C toolchains/llvm-ios-build -t targets all |
+              sed -n 's@^\(lib/libLLVM[^:]*\.a\):.*@\1@p' | sort -u
+          )
+          if [ "${#llvm_archive_targets[@]}" -lt 20 ]; then
+            echo "Expected LLVM static-library targets missing from iOS Ninja graph" >&2
+            exit 1
+          fi
+          for required in lib/libLLVMCore.a lib/libLLVMPasses.a lib/libLLVMBitWriter.a; do
+            case " ${llvm_archive_targets[*]} " in
+              *" $required "*) ;;
+              *) echo "Missing LLVM static-library target: $required" >&2; exit 1 ;;
+            esac
+          done
+          echo "Compiling ${#llvm_archive_targets[@]} LLVM static libraries for iOS arm64"
+          cmake --build toolchains/llvm-ios-build --parallel 4 --target "${llvm_archive_targets[@]}" \
             2>&1 | tee "$RUNNER_TEMP/llvm-ios-build.log"
           test -s toolchains/llvm-ios-build/lib/libLLVMCore.a
           test -s toolchains/llvm-ios-build/include/llvm/Config/llvm-config.h
