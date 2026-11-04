@@ -20,8 +20,15 @@ jobs:
           xcrun --sdk iphoneos --show-sdk-path
           cmake --version | head -1
           ninja --version
-          git clone --filter=blob:none https://github.com/llvm/llvm-project.git toolchains/llvm-project
-          git -C toolchains/llvm-project checkout 8dfdcc7b7
+          for attempt in 1 2 3 4; do
+            rm -rf toolchains/llvm-project
+            if git -c http.version=HTTP/1.1 clone --filter=blob:none https://github.com/llvm/llvm-project.git toolchains/llvm-project \
+              && git -C toolchains/llvm-project -c http.version=HTTP/1.1 checkout 8dfdcc7b7; then
+              break
+            fi
+            if [ "$attempt" -eq 4 ]; then echo "Pinned LLVM checkout failed after four attempts" >&2; exit 1; fi
+            sleep $((15 * attempt))
+          done
           test "$(git -C toolchains/llvm-project rev-parse --short=9 HEAD)" = "8dfdcc7b7"
           test -s toolchains/llvm-project/llvm/CMakeLists.txt
       - name: Configure host LLVM tablegen
@@ -127,6 +134,22 @@ jobs:
         with:
           name: madeira-llvm15-ios-arm64-candidate
           path: toolchains/llvm-ios-build
+      - name: Restore pinned LLVM source headers needed by DXMT
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The compiled LLVM artifact has generated headers but not llvm/include.
+          for attempt in 1 2 3 4; do
+            rm -rf toolchains/llvm-project
+            if git -c http.version=HTTP/1.1 clone --filter=blob:none https://github.com/llvm/llvm-project.git toolchains/llvm-project \
+              && git -C toolchains/llvm-project -c http.version=HTTP/1.1 checkout 8dfdcc7b7; then
+              break
+            fi
+            if [ "$attempt" -eq 4 ]; then echo "Pinned LLVM checkout failed after four attempts" >&2; exit 1; fi
+            sleep $((15 * attempt))
+          done
+          test "$(git -C toolchains/llvm-project rev-parse --short=9 HEAD)" = "8dfdcc7b7"
+          test -s toolchains/llvm-project/llvm/include/llvm/IR/Module.h
       - name: Prepare Metal shader compiler
         shell: bash
         run: |
