@@ -229,15 +229,27 @@ jobs:
             CC=/usr/bin/clang CXX=/usr/bin/clang++ ../configure --enable-win64 --disable-tests --without-x --without-alsa --without-cups --without-dbus --without-gphoto --without-gstreamer --without-oss --without-pulse --without-sane
           ) 2>&1 | tee "$RUNNER_TEMP/wine-unix-configure.log"
           test -s wine/build-macos/include/config.h
-          # configure alone does not generate Wine's IDL headers. Build the
-          # pinned source's real headers with Wine's host widl tool (no stubs).
-          make -C wine/build-macos -j4 \
-            include/wtypesbase.h include/unknwn.h include/objidlbase.h include/wtypes.h include/mfobjects.h \
-            include/mftransform.h include/dwrite.h include/dwrite_3.h \
+          # Produce the complete source-reachable Wine IDL closure before compiling
+          # either Unix library. Generate actual headers from the pinned Wine tree.
+          python3 tools/preflight-wine-generated-headers.py \
+            --repository "$GITHUB_WORKSPACE" \
+            --wine "$GITHUB_WORKSPACE/wine" \
+            --build "$GITHUB_WORKSPACE/wine/build-macos" \
+            --report "$RUNNER_TEMP/wine-header-preflight.json" \
             2>&1 | tee "$RUNNER_TEMP/wine-idl-headers.log"
-          for header in wtypesbase.h unknwn.h objidlbase.h wtypes.h mfobjects.h mftransform.h dwrite.h dwrite_3.h; do
-            test -s "wine/build-macos/include/$header"
-          done
+      - name: Verify native prerequisites before compiling Wine Unix archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$RUNNER_TEMP/wine-header-preflight.json"
+          test -s wine/build-macos/include/config.h
+          test -s toolchains/gnutls-ios/lib/libgnutls.a
+          test -s toolchains/ffmpeg-ios/include/libavcodec/avcodec.h
+          test -s research/freetype/include/ft2build.h
+          xcrun --sdk iphoneos --show-sdk-path
+          xcrun --sdk iphoneos clang --version | head -1
+          # Ensure the IDL preflight report contains a successful make invocation.
+          python3 -c 'import json,os; r=json.load(open(os.environ["RUNNER_TEMP"]+"/wine-header-preflight.json")); assert r["make_exit_code"] == 0 and not r["missing_generated_headers"] and not r["missing_transitive_header_references"], r'
       - name: Compile Wine unix iOS archive
         shell: bash
         run: |
