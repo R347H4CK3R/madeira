@@ -51,13 +51,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path("toolchains/llvm-project/llvm/cmake/modules/AddLLVM.cmake")
-          before='if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")'
-          assert before in p.read_text(), "Pinned LLVM Darwin linker patch location changed"
-          p.write_text(p.read_text().replace(before, 'if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin|iOS")', 1))
-          PY
+          # LLVM's add_link_opts treats CMAKE_SYSTEM_NAME=iOS as ELF unless
+          # dead-strip is disabled, which injects --gc-sections into ld64.
+          # The host's llvm-tblgen is already built separately above.
           cmake -S toolchains/llvm-project/llvm -B toolchains/llvm-ios-build -G Ninja \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_SYSROOT=iphoneos \
@@ -71,6 +67,7 @@ jobs:
             -DLLVM_TARGETS_TO_BUILD= \
             -DLLVM_ENABLE_PROJECTS= \
             -DLLVM_BUILD_TOOLS=OFF -DLLVM_BUILD_UTILS=OFF \
+            -DLLVM_NO_DEAD_STRIP=ON \
             -DLLVM_INCLUDE_TOOLS=OFF \
             -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_EXAMPLES=OFF \
             -DLLVM_INCLUDE_BENCHMARKS=OFF \
@@ -79,6 +76,11 @@ jobs:
             -DLLVM_NATIVE_TOOL_DIR="$GITHUB_WORKSPACE/toolchains/llvm-host-build/bin" \
             -DLLVM_TABLEGEN="$GITHUB_WORKSPACE/toolchains/llvm-host-build/bin/llvm-tblgen" \
             2>&1 | tee "$RUNNER_TEMP/llvm-ios-configure.log"
+          # Fail before the expensive build if a target still uses ELF ld flags.
+          if grep -Fq -- '--gc-sections' toolchains/llvm-ios-build/build.ninja; then
+            echo "LLVM iOS link rules still contain unsupported --gc-sections" >&2
+            exit 1
+          fi
       - name: Compile actual LLVM iOS archives and verify architecture
         shell: bash
         run: |
