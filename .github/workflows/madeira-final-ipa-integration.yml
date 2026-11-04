@@ -1,0 +1,114 @@
+name: Madeira final IPA integration
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  ipa:
+    name: Link compiled native archives into genuine iOS app
+    runs-on: macos-15-intel
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v6
+      - name: Discover successful same-commit native builds
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$PR_SHA"
+          if [ -z "$sha" ]; then sha="$GITHUB_SHA"; fi
+          echo "Expected source commit: $sha"
+          for spec in "WINE_RUN|Madeira macOS dependency and build probe" "FEX_RUN|StrataForge FEX iOS native build" "NATIVE_RUN|Madeira parallel native dependency builds" "DXMT_RUN|Madeira DXMT iOS native compilation probe"; do
+            key="$(echo "$spec" | cut -d'|' -f1)"
+            workflow="$(echo "$spec" | cut -d'|' -f2-)"
+            run="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?event=pull_request&head_sha=$sha&per_page=100" | jq -r --arg name "$workflow" '[.workflow_runs[] | select(.name == $name and .status == "completed" and .conclusion == "success")] | sort_by(.created_at) | last | .id // empty')"
+            if [ -z "$run" ]; then echo "::error::Missing successful $workflow for commit $sha"; exit 1; fi
+            echo "$key=$run" >> "$GITHUB_ENV"
+            echo "$key=$run"
+          done
+      - name: Download verified archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          download() {
+            mkdir -p "$RUNNER_TEMP/$3"
+            gh run download "$1" --repo "$GITHUB_REPOSITORY" --name "$2" --dir "$RUNNER_TEMP/$3"
+          }
+          download "$WINE_RUN" madeira-wineserver-ios-arm64-patched wineserver
+          download "$FEX_RUN" madeira-fex-ios-arm64-candidate fex
+          download "$NATIVE_RUN" madeira-parallel-ffmpeg-ios-arm64 ffmpeg
+          download "$NATIVE_RUN" madeira-parallel-gnutls-ios-arm64 gnutls
+          download "$NATIVE_RUN" madeira-parallel-freetype-ios-arm64 freetype
+          download "$NATIVE_RUN" madeira-parallel-rppairing-ios-arm64 pairing
+          download "$NATIVE_RUN" madeira-wine-ntdll-unix-ios-arm64 ntdll
+          download "$NATIVE_RUN" madeira-wine-win32u-unix-ios-arm64 win32u
+          download "$DXMT_RUN" madeira-dxmt-ios-arm64-no-d3d12-candidate dxmt
+          for folder in ffmpeg gnutls freetype; do cp -R "$RUNNER_TEMP/$folder/." .; done
+          mkdir -p FEX/build-ios app/Madeira
+          cp -R "$RUNNER_TEMP/fex/." FEX/build-ios/
+          for item in "wineserver|libwineserver.a" "pairing|libmadeira_rppairing.a" "ntdll|libntdll_unix.a" "win32u|libwin32u_unix.a" "dxmt|libdxmt_combined.a"; do
+            folder="$(echo "$item" | cut -d'|' -f1)"
+            name="$(echo "$item" | cut -d'|' -f2)"
+            file="$(find "$RUNNER_TEMP/$folder" -type f -name "$name" -print -quit)"
+            if [ -z "$file" ]; then echo "::error::Artifact missing $name"; exit 1; fi
+            cp "$file" "app/Madeira/$name"
+          done
+          for lib in app/Madeira/*.a FEX/build-ios/FEXCore/Source/*.a; do
+            test -s "$lib"
+            xcrun --sdk iphoneos lipo -archs "$lib" | grep -Eq '(^| )arm64($| )'
+          done
+      - name: Prepare source and explicitly mark missing Microsoft runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git submodule sync --recursive
+          git submodule update --init --recursive FEX wine dxmt
+          if [ -f build/stage-licenses.sh ]; then bash build/stage-licenses.sh; fi
+          mkdir -p app/Madeira/x86_64-vcruntime
+          if [ ! -s app/Madeira/x86_64-vcruntime/vcruntime140.dll ]; then
+            echo 'Microsoft VC++ x64 runtime is NOT included. Install/import the licensed official Microsoft redistributable into the Wine guest.' > app/Madeira/x86_64-vcruntime/README-runtime-not-included.txt
+            echo "::warning::Microsoft Windows runtime not bundled. Compiled IPA is only an integration candidate."
+          fi
+      - name: Compile actual iOS app with Xcode
+        shell: bash
+        run: |
+          set -o pipefail
+          xcodebuild -project app/Madeira.xcodeproj -scheme Madeira -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/MadeiraDerived" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' build 2>&1 | tee "$RUNNER_TEMP/integrated-xcode.log"
+      - name: Package and verify unsigned IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$RUNNER_TEMP/MadeiraDerived/Build/Products/Debug-iphoneos/Madeira.app"
+          test -s "$app/Info.plist"
+          exe="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Info.plist")"
+          test -s "$app/$exe"
+          xcrun --sdk iphoneos lipo -archs "$app/$exe" | grep -Eq '(^| )arm64($| )'
+          mkdir -p "$RUNNER_TEMP/payload/Payload"
+          ditto "$app" "$RUNNER_TEMP/payload/Payload/Madeira.app"
+          (cd "$RUNNER_TEMP/payload" && zip -qry "$GITHUB_WORKSPACE/Madeira-Strata-integration-unsigned.ipa" Payload)
+          unzip -t Madeira-Strata-integration-unsigned.ipa
+          shasum -a 256 Madeira-Strata-integration-unsigned.ipa | tee "$RUNNER_TEMP/ipa-sha256.txt"
+          echo 'Compiled unsigned integration IPA; Microsoft runtime, physical-device JIT and gameplay remain unverified.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload real compiled IPA
+        uses: actions/upload-artifact@v6
+        with:
+          name: Madeira-Strata-integration-unsigned-IPA
+          path: Madeira-Strata-integration-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
+      - name: Preserve compiler diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-ipa-integration-diagnostics
+          path: |
+            ${{ runner.temp }}/integrated-xcode.log
+            ${{ runner.temp }}/ipa-sha256.txt
+          if-no-files-found: warn
