@@ -25,7 +25,7 @@ jobs:
     runs-on: macos-15-intel
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Confirm Xcode SDK and native project are readable
         shell: bash
         run: |
@@ -45,7 +45,7 @@ jobs:
         run: |
           python3 tools/audit-strata-ipa-inputs.py --output /tmp/strataforge-pr-ipa-inputs.json || test "$?" -eq 1
           echo "PR source and input audit only; host debugger, Wine handshake, and physical-device rendering remain unverified." >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: strataforge-pr-readiness-audit
@@ -57,7 +57,7 @@ jobs:
     runs-on: macos-15-intel
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: feature/strataforge-feasibility
       - name: Validate redaction tests
@@ -71,7 +71,7 @@ jobs:
           xcodegen generate
           set -o pipefail
           xcodebuild -project StrataForgeProbe.xcodeproj -scheme StrataForgeProbe -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath ./DerivedData CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build.log
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: strataforge-pr-validation-logs
