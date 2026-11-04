@@ -10,7 +10,10 @@ from pathlib import Path
 IDL_REF = re.compile(r'\bimport\s+"([^"\n]+\.idl)"', re.I)
 C_INC = re.compile(r'^\s*#\s*include\s*[<"]([^">\n]+)[">]', re.M)
 DEFAULT = ('wtypesbase', 'unknwn', 'objidlbase', 'wtypes', 'mfobjects',
-           'mftransform', 'dwrite', 'dwrite_3')
+           'mftransform', 'dwrite', 'dwrite_3',
+           # These IDL dependencies are pulled through non-generated Wine
+           # headers outside the scanner's direct source roots.
+           'd2d1', 'strmif', 'exdisp')
 
 def main():
     ap = argparse.ArgumentParser()
