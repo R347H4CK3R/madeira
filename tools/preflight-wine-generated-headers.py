@@ -16,7 +16,10 @@ DEFAULT = ('wtypesbase', 'unknwn', 'objidlbase', 'wtypes', 'mfobjects',
            'd2d1', 'strmif', 'exdisp',
            # dshow.h and shlguid.h include these generated IDL headers.
            # Neither is directly referenced from the scanned Unix C roots.
-           'amvideo', 'shldisp')
+           'amvideo', 'shldisp',
+           # dshow.h requires control.h; shlobj.h requires shobjidl.h.
+           # Both were absent from otherwise successful IDL preflight runs.
+           'control', 'shobjidl')
 
 def main():
     ap = argparse.ArgumentParser()
