@@ -7,8 +7,37 @@ permissions:
   contents: read
   actions: read
 jobs:
+  wait-for-native:
+    name: Await same-commit native artifacts before allocating macOS
+    runs-on: ubuntu-latest
+    timeout-minutes: 175
+    steps:
+      - name: Wait for verified prerequisite workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$PR_SHA"
+          if [ -z "$sha" ]; then sha="$GITHUB_SHA"; fi
+          for attempt in $(seq 1 160); do
+            data="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?event=pull_request&head_sha=$sha&per_page=100")"
+            missing=0
+            for name in "Madeira macOS dependency and build probe" "StrataForge FEX iOS native build" "Madeira parallel native dependency builds" "Madeira DXMT iOS native compilation probe"; do
+              result="$(echo "$data" | jq -r --arg name "$name" '[.workflow_runs[] | select(.name == $name)] | sort_by(.created_at) | last | if . == null then "pending" elif .conclusion == "success" then "success" elif .status == "completed" then "failed" else "pending" end')"
+              echo "$name: $result"
+              if [ "$result" = failed ]; then echo "::error::Prerequisite build failed: $name"; exit 1; fi
+              if [ "$result" != success ]; then missing=1; fi
+            done
+            if [ "$missing" -eq 0 ]; then echo "All four source-matched native builds succeeded."; exit 0; fi
+            sleep 60
+          done
+          echo "::error::Native dependencies did not finish within gate limit"
+          exit 1
   ipa:
     name: Link compiled native archives into genuine iOS app
+    needs: [wait-for-native]
     runs-on: macos-15-intel
     timeout-minutes: 110
     steps:
