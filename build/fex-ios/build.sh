@@ -17,7 +17,18 @@ if [ ! -f "$B/CMakeCache.txt" ]; then
         -DBUILD_TESTING=OFF -DBUILD_THUNKS=OFF -DBUILD_FEXCONFIG=OFF -DBUILD_FEX_LINUX_TESTS=OFF \
         -DENABLE_FEX_ALLOCATOR=OFF -DENABLE_ASSERTIONS=OFF -DENABLE_CLANG_THUNKS=ON -DENABLE_CCACHE=ON
 fi
-# The app links JemallocLibs even when Apple disables Linux-specific allocators.
-# FEX defines a standalone AllocatorHooks archive; compile that target explicitly.
-cmake --build "$B" --target FEXCore FEXCore_Base JemallocLibs
-ls "$B/FEXCore/Source/"*.a
+# Build each native target explicitly. Multiple targets passed to one cmake
+# --build command did not produce libJemallocLibs.a on the CI runner.
+# The Apple port disables glibc jemalloc/rpmalloc, but JemallocLibs is a
+# separate FEX AllocatorHooks static target and must not be replaced by an
+# empty archive merely to satisfy the Xcode linker input.
+for target in FEXCore FEXCore_Base JemallocLibs; do
+    echo "=== Building FEX target: $target ==="
+    cmake --build "$B" --target "$target"
+done
+echo "=== FEX native archive inventory ==="
+find "$B" -name '*.a' -type f -print | sort
+test -s "$B/FEXCore/Source/libJemallocLibs.a" || {
+    echo "Missing real JemallocLibs archive after explicit target build" >&2
+    exit 1
+}
