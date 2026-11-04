@@ -293,6 +293,7 @@ jobs:
           path: |
             ${{ runner.temp }}/wine-unix-configure.log
             ${{ runner.temp }}/wine-idl-headers.log
+            ${{ runner.temp }}/wine-header-preflight.json
             ${{ runner.temp }}/wine-${{ matrix.component }}-unix-build.log
             build/${{ matrix.component }}-unix/obj/*.err
           if-no-files-found: warn
