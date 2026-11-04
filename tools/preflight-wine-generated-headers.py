@@ -116,7 +116,7 @@ def main():
                   missing_transitive_header_references=sorted(missing_refs))
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, indent=2) + '\n')
-    for item in missing + sorted(missing_refs):
+    for item in sorted(missing) + sorted(missing_refs):
         print('MISSING: ' + item, file=sys.stderr)
     if make_exit_code or missing or missing_refs:
         return 1
