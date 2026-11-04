@@ -119,9 +119,44 @@ jobs:
             build/gnutls-ios/obj/*-make.log
           if-no-files-found: warn
 
+  freetype-ios:
+    name: FreeType iOS arm64
+    runs-on: macos-15-intel
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch tagged FreeType source and build native font library
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e research/freetype
+          git clone --depth 1 --branch VER-2-13-3 https://github.com/freetype/freetype.git research/freetype
+          test -s research/freetype/include/ft2build.h
+          bash build/freetype-ios/build.sh 2>&1 | tee "$RUNNER_TEMP/freetype-build.log"
+          archive="build/freetype-ios/build/libfreetype.a"
+          test -s "$archive"
+          xcrun --sdk iphoneos ar t "$archive" > "$RUNNER_TEMP/freetype-members.txt"
+          test -s "$RUNNER_TEMP/freetype-members.txt"
+          xcrun --sdk iphoneos lipo -archs "$archive" | grep -Eq '(^| )arm64($| )'
+      - name: Upload compiled FreeType and source headers
+        uses: actions/upload-artifact@v4
+        with:
+          name: madeira-parallel-freetype-ios-arm64
+          path: |
+            build/freetype-ios/build/libfreetype.a
+            build/freetype-ios/build/include/
+            research/freetype/include/
+          if-no-files-found: error
+      - name: Preserve FreeType build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: madeira-parallel-freetype-logs
+          path: ${{ runner.temp }}/freetype-build.log
+          if-no-files-found: warn
   wine-unix-ios:
     name: Wine ${{ matrix.component }} unix library iOS arm64
-    needs: [ffmpeg-ios, gnutls-ios]
+    needs: [ffmpeg-ios, gnutls-ios, freetype-ios]
     runs-on: macos-15-intel
     timeout-minutes: 120
     strategy:
@@ -142,6 +177,11 @@ jobs:
         with:
           name: madeira-parallel-gnutls-ios-arm64
           path: .
+      - name: Restore FreeType archive and headers
+        uses: actions/download-artifact@v4
+        with:
+          name: madeira-parallel-freetype-ios-arm64
+          path: .
       - name: Verify restored native dependencies
         shell: bash
         run: |
@@ -152,6 +192,8 @@ jobs:
           test -s toolchains/gnutls-ios/lib/libgnutls.a
           test -d toolchains/gnutls-ios/include
           test -d toolchains/ffmpeg-ios/include
+          test -s build/freetype-ios/build/libfreetype.a
+          test -s research/freetype/include/ft2build.h
       - name: Fetch exact pinned Wine source with retries
         shell: bash
         run: |
@@ -187,6 +229,15 @@ jobs:
             CC=/usr/bin/clang CXX=/usr/bin/clang++ ../configure --enable-win64 --disable-tests --without-x --without-alsa --without-cups --without-dbus --without-gphoto --without-gstreamer --without-oss --without-pulse --without-sane
           ) 2>&1 | tee "$RUNNER_TEMP/wine-unix-configure.log"
           test -s wine/build-macos/include/config.h
+          # configure alone does not generate Wine's IDL headers. Build the
+          # pinned source's real headers with Wine's host widl tool (no stubs).
+          make -C wine/build-macos -j4 \
+            include/objidlbase.h include/wtypes.h include/mfobjects.h \
+            include/mftransform.h include/dwrite.h include/dwrite_3.h \
+            2>&1 | tee "$RUNNER_TEMP/wine-idl-headers.log"
+          for header in objidlbase.h wtypes.h mfobjects.h mftransform.h dwrite.h dwrite_3.h; do
+            test -s "wine/build-macos/include/$header"
+          done
       - name: Compile Wine unix iOS archive
         shell: bash
         run: |
@@ -209,6 +260,7 @@ jobs:
           name: madeira-wine-${{ matrix.component }}-unix-logs
           path: |
             ${{ runner.temp }}/wine-unix-configure.log
+            ${{ runner.temp }}/wine-idl-headers.log
             ${{ runner.temp }}/wine-${{ matrix.component }}-unix-build.log
             build/${{ matrix.component }}-unix/obj/*.err
           if-no-files-found: warn
