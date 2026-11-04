@@ -59,6 +59,7 @@ jobs:
             test -s "$file" || { echo "::error::Missing FEX archive: $file"; exit 1; }
             xcrun --sdk iphoneos ar t "$file" > /tmp/madeira-fex-members.txt
             test -s /tmp/madeira-fex-members.txt
+            xcrun --sdk iphoneos lipo -archs "$file" | grep -Eq '(^| )arm64($| )' || { echo "::error::FEX archive not ARM64: $file"; exit 1; }
             echo "$file" | tee -a /tmp/madeira-fex-verified.txt
           done
       - name: Upload all verified native archives
@@ -90,8 +91,8 @@ jobs:
         shell: bash
         run: |
           echo "### FEX iOS ARM64 archive build" >> "$GITHUB_STEP_SUMMARY"
-          if test -s /tmp/madeira-fex-verified.txt; then
-            echo "Seven archive paths verified. App link and device runtime remain untested." >> "$GITHUB_STEP_SUMMARY"
+          if test "$(wc -l < /tmp/madeira-fex-verified.txt 2>/dev/null || echo 0)" -eq 7; then
+            echo "Seven iOS ARM64 FEX archives verified. Full app link and device runtime remain untested." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "FEX archives incomplete; inspect preserved diagnostics." >> "$GITHUB_STEP_SUMMARY"
           fi
