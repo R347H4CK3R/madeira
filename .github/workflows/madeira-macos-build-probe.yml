@@ -11,7 +11,7 @@ jobs:
     runs-on: macos-15-intel
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: false
       - name: Verify Intel host and iOS ARM64 cross-compiler
@@ -112,7 +112,7 @@ jobs:
           grep -Eq '(^| )arm64($| )' /tmp/madeira-wineserver-arch.txt
       - name: Save candidate native archive
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: madeira-wineserver-ios-arm64-base
           path: build/wineserver/obj/libwineserver.a
@@ -137,7 +137,7 @@ jobs:
           bash tools/verify-wineserver-ios-arm64.sh app/Madeira/libwineserver.a /tmp/madeira-wineserver-architecture-verified.txt
       - name: Save patched Wine server archive
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: madeira-wineserver-ios-arm64-patched
           path: app/Madeira/libwineserver.a
@@ -158,7 +158,7 @@ jobs:
           done
       - name: Save verified FFmpeg native libraries
         if: steps.ffmpeg-ios.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: madeira-ffmpeg-ios-arm64
           path: |
@@ -183,7 +183,7 @@ jobs:
           grep -Eq '(^| )arm64($| )' /tmp/madeira-rppairing-arch.txt
       - name: Save verified Rust pairing library
         if: steps.pairing-ios.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: madeira-rppairing-ios-arm64
           path: app/Madeira/libmadeira_rppairing.a
@@ -221,7 +221,7 @@ jobs:
           shasum -a 256 "$GITHUB_WORKSPACE/Madeira-Strata-unsigned.ipa" | tee /tmp/madeira-ipa-sha256.txt
       - name: Upload genuine IPA only after compiler and packaging succeed
         if: steps.ipa-inputs.outputs.ready == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Madeira-Strata-unsigned-IPA
           path: Madeira-Strata-unsigned.ipa
@@ -229,7 +229,7 @@ jobs:
           retention-days: 30
       - name: Preserve compiler diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: madeira-wineserver-compile-diagnostics
           path: |
