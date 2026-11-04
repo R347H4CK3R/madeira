@@ -1,0 +1,173 @@
+name: Madeira DXMT iOS native compilation probe
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  llvm-ios:
+    name: Compile pinned LLVM 15 libraries for iOS arm64
+    runs-on: macos-15-intel
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify Apple SDK, build tools, and pinned LLVM source
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path
+          cmake --version | head -1
+          ninja --version
+          git clone --filter=blob:none https://github.com/llvm/llvm-project.git toolchains/llvm-project
+          git -C toolchains/llvm-project checkout 8dfdcc7b7
+          test "$(git -C toolchains/llvm-project rev-parse --short=9 HEAD)" = "8dfdcc7b7"
+          test -s toolchains/llvm-project/llvm/CMakeLists.txt
+      - name: Configure host LLVM tablegen
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S toolchains/llvm-project/llvm -B toolchains/llvm-host-build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLVM_TARGETS_TO_BUILD= \
+            -DLLVM_ENABLE_PROJECTS= \
+            -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_EXAMPLES=OFF \
+            -DLLVM_INCLUDE_BENCHMARKS=OFF -DLLVM_ENABLE_ZLIB=OFF \
+            -DLLVM_ENABLE_ZSTD=OFF -DLLVM_ENABLE_TERMINFO=OFF \
+            -DLLVM_ENABLE_LIBXML2=OFF \
+            2>&1 | tee "$RUNNER_TEMP/llvm-host-configure.log"
+          cmake --build toolchains/llvm-host-build --target llvm-tblgen --parallel 4 \
+            2>&1 | tee "$RUNNER_TEMP/llvm-host-build.log"
+          test -x toolchains/llvm-host-build/bin/llvm-tblgen
+      - name: Configure pinned LLVM for native iOS arm64 static libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("toolchains/llvm-project/llvm/cmake/modules/AddLLVM.cmake")
+          before='if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")'
+          assert before in p.read_text(), "Pinned LLVM Darwin linker patch location changed"
+          p.write_text(p.read_text().replace(before, 'if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin|iOS")', 1))
+          PY
+          cmake -S toolchains/llvm-project/llvm -B toolchains/llvm-ios-build -G Ninja \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_SYSROOT=iphoneos \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLVM_HOST_TRIPLE=arm64-apple-ios17.0 \
+            -DLLVM_DEFAULT_TARGET_TRIPLE=arm64-apple-ios17.0 \
+            -DLLVM_TARGET_ARCH=host \
+            -DLLVM_TARGETS_TO_BUILD= \
+            -DLLVM_ENABLE_PROJECTS= \
+            -DLLVM_BUILD_TOOLS=OFF -DLLVM_BUILD_UTILS=OFF \
+            -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_EXAMPLES=OFF \
+            -DLLVM_INCLUDE_BENCHMARKS=OFF \
+            -DLLVM_ENABLE_ZLIB=OFF -DLLVM_ENABLE_ZSTD=OFF \
+            -DLLVM_ENABLE_TERMINFO=OFF -DLLVM_ENABLE_LIBXML2=OFF \
+            -DLLVM_TABLEGEN="$GITHUB_WORKSPACE/toolchains/llvm-host-build/bin/llvm-tblgen" \
+            2>&1 | tee "$RUNNER_TEMP/llvm-ios-configure.log"
+      - name: Compile actual LLVM iOS archives and verify architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --build toolchains/llvm-ios-build --parallel 4 \
+            2>&1 | tee "$RUNNER_TEMP/llvm-ios-build.log"
+          test -s toolchains/llvm-ios-build/lib/libLLVMCore.a
+          test -s toolchains/llvm-ios-build/include/llvm/Config/llvm-config.h
+          for archive in toolchains/llvm-ios-build/lib/*.a; do
+            xcrun --sdk iphoneos lipo -archs "$archive" | grep -Eq '(^| )arm64($| )' || {
+              echo "Non-arm64 LLVM archive: $archive" >&2; exit 1;
+            }
+          done
+      - name: Upload LLVM candidate compiled archives and generated headers
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-llvm15-ios-arm64-candidate
+          path: |
+            toolchains/llvm-ios-build/lib/*.a
+            toolchains/llvm-ios-build/include/
+          if-no-files-found: error
+          retention-days: 5
+      - name: Preserve LLVM host and iOS compilation logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-dxmt-llvm-ios-probe-logs
+          path: |
+            ${{ runner.temp }}/llvm-host-configure.log
+            ${{ runner.temp }}/llvm-host-build.log
+            ${{ runner.temp }}/llvm-ios-configure.log
+            ${{ runner.temp }}/llvm-ios-build.log
+            toolchains/llvm-ios-build/CMakeFiles/CMakeConfigureLog.yaml
+          if-no-files-found: warn
+  dxmt-ios:
+    name: Compile pinned DXMT iOS arm64 candidate
+    needs: [llvm-ios]
+    runs-on: macos-15-intel
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: false
+      - name: Fetch pinned DXMT source and nested submodules
+        shell: bash
+        run: |
+          set -euo pipefail
+          git submodule sync --recursive
+          git -c http.version=HTTP/1.1 submodule update --init --recursive --depth 1 dxmt
+          expected="$(git rev-parse HEAD:dxmt)"
+          actual="$(git -C dxmt rev-parse HEAD)"
+          test "$expected" = "$actual"
+          test -s dxmt/src/winemetal/unix/winemetal_unix.c
+      - name: Restore LLVM iOS archives
+        uses: actions/download-artifact@v7
+        with:
+          name: madeira-llvm15-ios-arm64-candidate
+          path: toolchains/llvm-ios-build
+      - name: Prepare Metal shader compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! xcrun --sdk macosx --find metal >/dev/null 2>&1; then
+            xcodebuild -downloadComponent MetalToolchain
+          fi
+          xcrun --sdk macosx --find metal
+          xcrun --sdk macosx --find metallib
+          test -s toolchains/llvm-ios-build/lib/libLLVMCore.a
+          test -s toolchains/llvm-ios-build/include/llvm/Config/llvm-config.h
+      - name: Compile native DXMT and combine with iOS LLVM
+        shell: bash
+        env:
+          # DXMT's D3D12 shader converter remains an independent runtime gate.
+          MADEIRA_ALLOW_NO_D3D12: '1'
+        run: |
+          set -euo pipefail
+          bash build/dxmt-ios/build.sh 2>&1 | tee "$RUNNER_TEMP/dxmt-ios-build.log"
+          test -s build/dxmt-ios/libdxmt_unix.a
+          xcrun --sdk iphoneos libtool -static \
+            -o app/Madeira/libdxmt_combined.a \
+            build/dxmt-ios/obj/*.o toolchains/llvm-ios-build/lib/*.a \
+            2>&1 | tee "$RUNNER_TEMP/dxmt-ios-combine.log"
+          test -s app/Madeira/libdxmt_combined.a
+          xcrun --sdk iphoneos lipo -archs app/Madeira/libdxmt_combined.a |
+            grep -Eq '(^| )arm64($| )'
+      - name: Save compiled DXMT candidate
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-dxmt-ios-arm64-no-d3d12-candidate
+          path: app/Madeira/libdxmt_combined.a
+          if-no-files-found: error
+          retention-days: 5
+      - name: Preserve DXMT compiler diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-dxmt-ios-probe-logs
+          path: |
+            ${{ runner.temp }}/dxmt-ios-build.log
+            ${{ runner.temp }}/dxmt-ios-combine.log
+            build/dxmt-ios/obj/*.err
+          if-no-files-found: warn
