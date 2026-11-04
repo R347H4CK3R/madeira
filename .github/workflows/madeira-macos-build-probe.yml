@@ -48,7 +48,7 @@ jobs:
           expected="$(git rev-parse HEAD:wine)"
           actual="$(git -C wine rev-parse HEAD)"
           test "$expected" = "$actual" || { echo "ERROR: Wine gitlink SHA mismatch" >&2; exit 1; }
-          printf '%s\\n' "$actual" | tee /tmp/madeira-wine-revision.txt
+          echo "$actual" | tee /tmp/madeira-wine-revision.txt
       - name: Install required Wine host build tools
         shell: bash
         run: |
