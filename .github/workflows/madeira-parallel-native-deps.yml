@@ -297,3 +297,117 @@ jobs:
             ${{ runner.temp }}/wine-${{ matrix.component }}-unix-build.log
             build/${{ matrix.component }}-unix/obj/*.err
           if-no-files-found: warn
+
+  native-link-inputs:
+    name: Assemble verified native inputs and audit IPA blockers
+    needs: [ffmpeg-ios, pairing-ios, gnutls-ios, freetype-ios, wine-unix-ios]
+    runs-on: macos-15-intel
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+      - name: Restore native FFmpeg archives
+        uses: actions/download-artifact@v6
+        with:
+          name: madeira-parallel-ffmpeg-ios-arm64
+          path: .
+      - name: Restore native crypto archives
+        uses: actions/download-artifact@v6
+        with:
+          name: madeira-parallel-gnutls-ios-arm64
+          path: .
+      - name: Restore native Rust pairing archive
+        uses: actions/download-artifact@v6
+        with:
+          name: madeira-parallel-rppairing-ios-arm64
+          path: ${{ runner.temp }}/pairing-archive
+      - name: Restore native Wine NTDLL archive
+        uses: actions/download-artifact@v6
+        with:
+          name: madeira-wine-ntdll-unix-ios-arm64
+          path: ${{ runner.temp }}/ntdll-archive
+      - name: Restore native Wine Win32u archive
+        uses: actions/download-artifact@v6
+        with:
+          name: madeira-wine-win32u-unix-ios-arm64
+          path: ${{ runner.temp }}/win32u-archive
+      - name: Place independently compiled native archive outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p app/Madeira
+          cp "$RUNNER_TEMP/pairing-archive/libmadeira_rppairing.a" app/Madeira/
+          cp "$RUNNER_TEMP/ntdll-archive/libntdll_unix.a" app/Madeira/
+          cp "$RUNNER_TEMP/win32u-archive/libwin32u_unix.a" app/Madeira/
+          for lib in ntdll_unix win32u_unix madeira_rppairing avformat avcodec swresample avutil gnutls nettle hogweed gmp; do
+            archive="app/Madeira/lib${lib}.a"
+            test -s "$archive"
+            xcrun --sdk iphoneos lipo -archs "$archive" | grep -Eq '(^| )arm64($| )'
+          done
+      - name: Fetch Wine server and FEX artifacts from same exact source commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # Fetch *only* successful PR builds of this identical source commit.
+          # A passing build from another commit is not a valid link input.
+          head_sha="${PR_HEAD_SHA:-$GITHUB_SHA}"
+          locate_run() {
+            gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$1/runs?event=pull_request&head_sha=$head_sha&per_page=100" \
+              --jq '[.workflow_runs[] | select(.status == "completed" and .conclusion == "success")] | sort_by(.created_at) | reverse | .[0].id // empty'
+          }
+          wine_run="$(locate_run 405294765)"
+          if [ -n "$wine_run" ]; then
+            mkdir -p "$RUNNER_TEMP/wine-stage"
+            if gh run download "$wine_run" --repo "$GITHUB_REPOSITORY" \
+                --name madeira-wineserver-ios-arm64-patched --dir "$RUNNER_TEMP/wine-stage"; then
+              cp "$RUNNER_TEMP/wine-stage/libwineserver.a" app/Madeira/libwineserver.a
+              xcrun --sdk iphoneos lipo -archs app/Madeira/libwineserver.a | grep -Eq '(^| )arm64($| )'
+            else
+              echo "::warning::Wine server artifact unavailable for verified run $wine_run"
+            fi
+          else
+            echo "::warning::No successful Wine server run for commit $head_sha"
+          fi
+          fex_run="$(locate_run 406320885)"
+          if [ -n "$fex_run" ]; then
+            mkdir -p "$RUNNER_TEMP/fex-stage" FEX/build-ios
+            if gh run download "$fex_run" --repo "$GITHUB_REPOSITORY" \
+                --name madeira-fex-ios-arm64-candidate --dir "$RUNNER_TEMP/fex-stage"; then
+              cp -R "$RUNNER_TEMP/fex-stage/." FEX/build-ios/
+              for lib in FEXCore/Source/libFEXCore.a FEXCore/Source/libFEXCore_Base.a \
+                         FEXCore/Source/libJemallocLibs.a External/fmt/libfmt.a \
+                         External/cephes/libcephes_128bit.a \
+                         External/xxhash/cmake_unofficial/libxxhash.a \
+                         External/SoftFloat-3e/libsoftfloat_3e.a; do
+                test -s "FEX/build-ios/$lib"
+                xcrun --sdk iphoneos lipo -archs "FEX/build-ios/$lib" | grep -Eq '(^| )arm64($| )'
+              done
+            else
+              echo "::warning::FEX artifact unavailable for verified run $fex_run"
+            fi
+          else
+            echo "::warning::No successful FEX run for commit $head_sha"
+          fi
+          echo "Source commit for cross-workflow artifacts: $head_sha"
+      - name: Audit complete IPA inputs without fabricating an app
+        shell: bash
+        run: |
+          set -euo pipefail
+          if python3 tools/audit-strata-ipa-inputs.py --output "$RUNNER_TEMP/madeira-integrated-inputs.json"; then
+            echo "All audited files present; Xcode linking and runtime verification are still required." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Native artifact integration complete but IPA prerequisites remain missing; no IPA was built." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          cat "$RUNNER_TEMP/madeira-integrated-inputs.json"
+      - name: Preserve integrated input readiness audit
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-integrated-ipa-inputs-audit
+          path: ${{ runner.temp }}/madeira-integrated-inputs.json
+          if-no-files-found: error
