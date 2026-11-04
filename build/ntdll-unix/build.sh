@@ -205,6 +205,13 @@ if [ -n "$FAILED_FILES" ]; then
 fi
 
 echo ""
+# Never package a partial archive after an earlier per-file compile failure.
+# All failing translation units save their stderr in obj/<name>.err.
+if [ "$FAILED" -ne 0 ]; then
+    echo "ERROR: $FAILED NTDLL iOS source files failed; refusing to archive partial native objects." >&2
+    exit 1
+fi
+
 echo "=== Building libntdll_unix.a ==="
 ar rcs "$OBJ_DIR/libntdll_unix.a" \
     "$OBJ_DIR/audio_null_ios.o" "$OBJ_DIR/madsync.o" "$OBJ_DIR/nsi_unixlib_ios.o" \
