@@ -15,7 +15,7 @@ jobs:
     runs-on: macos-15-intel
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: false
       - name: Checkout pinned FEX dependency tree
@@ -63,7 +63,7 @@ jobs:
             echo "$file" | tee -a /tmp/madeira-fex-verified.txt
           done
       - name: Upload all verified native archives
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: madeira-fex-ios-arm64-candidate
           path: |
@@ -77,7 +77,7 @@ jobs:
           if-no-files-found: error
       - name: Preserve FEX compiler diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: madeira-fex-ios-diagnostics
           path: |
