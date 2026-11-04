@@ -13,7 +13,10 @@ DEFAULT = ('wtypesbase', 'unknwn', 'objidlbase', 'wtypes', 'mfobjects',
            'mftransform', 'dwrite', 'dwrite_3',
            # These IDL dependencies are pulled through non-generated Wine
            # headers outside the scanner's direct source roots.
-           'd2d1', 'strmif', 'exdisp')
+           'd2d1', 'strmif', 'exdisp',
+           # dshow.h and shlguid.h include these generated IDL headers.
+           # Neither is directly referenced from the scanned Unix C roots.
+           'amvideo', 'shldisp')
 
 def main():
     ap = argparse.ArgumentParser()
