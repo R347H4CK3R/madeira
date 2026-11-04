@@ -247,6 +247,26 @@ jobs:
           test -s "$archive"
           xcrun --sdk iphoneos ar t "$archive" > "$RUNNER_TEMP/wine-${{ matrix.component }}-members.txt"
           test -s "$RUNNER_TEMP/wine-${{ matrix.component }}-members.txt"
+      - name: Print failed compiler diagnostics for source repairs
+        if: failure()
+        shell: bash
+        run: |
+          set -uo pipefail
+          directory="build/${{ matrix.component }}-unix/obj"
+          echo "::group::Wine ${{ matrix.component }} failed source diagnostics"
+          if [ -d "$directory" ]; then
+            found=0
+            for report in "$directory"/*.err; do
+              [ -s "$report" ] || continue
+              found=1
+              echo "===== $report ====="
+              grep -nE -C 4 'fatal error:|error:|undefined|no such file|not found' "$report" | head -n 120 || sed -n '1,120p' "$report"
+            done
+            [ "$found" -eq 1 ] || echo "No nonempty per-source compiler error files found"
+          else
+            echo "Object diagnostics directory was not created"
+          fi
+          echo "::endgroup::"
       - name: Upload verified Wine native archive
         uses: actions/upload-artifact@v4
         with:
