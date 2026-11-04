@@ -89,7 +89,12 @@ jobs:
           # to link optional modules such as LLVMHello.dylib, whose ELF/COFF
           # .def export file is not accepted by Apple's Mach-O linker.
           # None of those modules or executable tools is used by DXMT.
-          mapfile -t llvm_archive_targets < <(
+          # macOS runners ship Bash 3.2, which does not implement mapfile.
+          # Retain an array to safely pass each archive as a separate target.
+          llvm_archive_targets=()
+          while IFS= read -r target; do
+            [ -n "$target" ] && llvm_archive_targets+=("$target")
+          done < <(
             ninja -C toolchains/llvm-ios-build -t targets all |
               sed -n 's@^\(lib/libLLVM[^:]*\.a\):.*@\1@p' | sort -u
           )
