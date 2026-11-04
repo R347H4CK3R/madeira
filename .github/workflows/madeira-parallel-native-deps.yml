@@ -1,0 +1,113 @@
+name: Madeira parallel native dependency builds
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ffmpeg-ios:
+    name: FFmpeg iOS arm64
+    runs-on: macos-15-intel
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build pinned LGPL FFmpeg sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash build/ffmpeg/build.sh 2>&1 | tee "$RUNNER_TEMP/ffmpeg-build.log"
+          for lib in avformat avcodec swresample avutil; do
+            archive="app/Madeira/lib${lib}.a"
+            test -s "$archive"
+            xcrun --sdk iphoneos ar t "$archive" > "$RUNNER_TEMP/ffmpeg-${lib}-members.txt"
+            test -s "$RUNNER_TEMP/ffmpeg-${lib}-members.txt"
+          done
+      - name: Upload native FFmpeg archives
+        uses: actions/upload-artifact@v4
+        with:
+          name: madeira-parallel-ffmpeg-ios-arm64
+          path: |
+            app/Madeira/libavformat.a
+            app/Madeira/libavcodec.a
+            app/Madeira/libswresample.a
+            app/Madeira/libavutil.a
+          if-no-files-found: error
+      - name: Preserve FFmpeg diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: madeira-parallel-ffmpeg-logs
+          path: |
+            ${{ runner.temp }}/ffmpeg-build.log
+            build/ffmpeg/obj/configure.log
+            build/ffmpeg/obj/make.log
+          if-no-files-found: warn
+  pairing-ios:
+    name: Rust pairing iOS arm64
+    runs-on: macos-15-intel
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build pinned Rust pairing sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup target add aarch64-apple-ios
+          bash build/rppairing-ios/build.sh 2>&1 | tee "$RUNNER_TEMP/pairing-build.log"
+          archive="app/Madeira/libmadeira_rppairing.a"
+          test -s "$archive"
+          xcrun --sdk iphoneos ar t "$archive" > "$RUNNER_TEMP/pairing-members.txt"
+          test -s "$RUNNER_TEMP/pairing-members.txt"
+          xcrun --sdk iphoneos lipo -archs "$archive" | grep -Eq '(^| )arm64($| )'
+      - name: Upload native pairing archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: madeira-parallel-rppairing-ios-arm64
+          path: app/Madeira/libmadeira_rppairing.a
+          if-no-files-found: error
+      - name: Preserve pairing diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: madeira-parallel-rppairing-logs
+          path: ${{ runner.temp }}/pairing-build.log
+          if-no-files-found: warn
+  gnutls-ios:
+    name: GnuTLS crypto stack iOS arm64
+    runs-on: macos-15-intel
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile pinned GMP, Nettle and GnuTLS
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash build/gnutls-ios/build.sh 2>&1 | tee "$RUNNER_TEMP/gnutls-build.log"
+          for lib in gnutls nettle hogweed gmp; do
+            archive="toolchains/gnutls-ios/lib/lib${lib}.a"
+            test -s "$archive"
+            xcrun --sdk iphoneos ar t "$archive" > "$RUNNER_TEMP/gnutls-${lib}-members.txt"
+            test -s "$RUNNER_TEMP/gnutls-${lib}-members.txt"
+          done
+      - name: Upload compiled crypto archives and headers
+        uses: actions/upload-artifact@v4
+        with:
+          name: madeira-parallel-gnutls-ios-arm64
+          path: |
+            toolchains/gnutls-ios/lib/libgnutls.a
+            toolchains/gnutls-ios/lib/libnettle.a
+            toolchains/gnutls-ios/lib/libhogweed.a
+            toolchains/gnutls-ios/lib/libgmp.a
+            toolchains/gnutls-ios/include/
+          if-no-files-found: error
+      - name: Preserve crypto build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: madeira-parallel-gnutls-logs
+          path: |
+            ${{ runner.temp }}/gnutls-build.log
+            build/gnutls-ios/obj/*-configure.log
+            build/gnutls-ios/obj/*-make.log
+          if-no-files-found: warn
