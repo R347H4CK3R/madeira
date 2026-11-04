@@ -11,7 +11,7 @@ jobs:
     runs-on: macos-15-intel
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build pinned LGPL FFmpeg sources
         shell: bash
         run: |
@@ -24,7 +24,7 @@ jobs:
             test -s "$RUNNER_TEMP/ffmpeg-${lib}-members.txt"
           done
       - name: Upload native FFmpeg archives
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: madeira-parallel-ffmpeg-ios-arm64
           path: |
@@ -36,7 +36,7 @@ jobs:
           if-no-files-found: error
       - name: Preserve FFmpeg diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: madeira-parallel-ffmpeg-logs
           path: |
@@ -49,7 +49,7 @@ jobs:
     runs-on: macos-15-intel
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build pinned Rust pairing sources
         shell: bash
         run: |
@@ -62,14 +62,14 @@ jobs:
           test -s "$RUNNER_TEMP/pairing-members.txt"
           xcrun --sdk iphoneos lipo -archs "$archive" | grep -Eq '(^| )arm64($| )'
       - name: Upload native pairing archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: madeira-parallel-rppairing-ios-arm64
           path: app/Madeira/libmadeira_rppairing.a
           if-no-files-found: error
       - name: Preserve pairing diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: madeira-parallel-rppairing-logs
           path: ${{ runner.temp }}/pairing-build.log
@@ -79,7 +79,7 @@ jobs:
     runs-on: macos-15-intel
     timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Compile pinned GMP, Nettle and GnuTLS
         shell: bash
         run: |
@@ -94,7 +94,7 @@ jobs:
           mkdir -p app/Madeira
           for lib in gnutls nettle hogweed gmp; do cp "toolchains/gnutls-ios/lib/lib${lib}.a" "app/Madeira/lib${lib}.a"; done
       - name: Upload compiled crypto archives and headers
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: madeira-parallel-gnutls-ios-arm64
           path: |
@@ -110,7 +110,7 @@ jobs:
           if-no-files-found: error
       - name: Preserve crypto build diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: madeira-parallel-gnutls-logs
           path: |
@@ -124,7 +124,7 @@ jobs:
     runs-on: macos-15-intel
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Fetch tagged FreeType source and build native font library
         shell: bash
         run: |
@@ -139,7 +139,7 @@ jobs:
           test -s "$RUNNER_TEMP/freetype-members.txt"
           xcrun --sdk iphoneos lipo -archs "$archive" | grep -Eq '(^| )arm64($| )'
       - name: Upload compiled FreeType and source headers
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: madeira-parallel-freetype-ios-arm64
           path: |
@@ -149,7 +149,7 @@ jobs:
           if-no-files-found: error
       - name: Preserve FreeType build logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: madeira-parallel-freetype-logs
           path: ${{ runner.temp }}/freetype-build.log
@@ -164,21 +164,21 @@ jobs:
       matrix:
         component: [ntdll, win32u]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: false
       - name: Restore compiled FFmpeg and crypto dependencies
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: madeira-parallel-ffmpeg-ios-arm64
           path: .
       - name: Restore compiled GnuTLS and crypto dependencies
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: madeira-parallel-gnutls-ios-arm64
           path: .
       - name: Restore FreeType archive and headers
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: madeira-parallel-freetype-ios-arm64
           path: .
@@ -280,14 +280,14 @@ jobs:
           fi
           echo "::endgroup::"
       - name: Upload verified Wine native archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: madeira-wine-${{ matrix.component }}-unix-ios-arm64
           path: app/Madeira/lib${{ matrix.component }}_unix.a
           if-no-files-found: error
       - name: Preserve Wine unix compile diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: madeira-wine-${{ matrix.component }}-unix-logs
           path: |
