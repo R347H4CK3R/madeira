@@ -232,10 +232,10 @@ jobs:
           # configure alone does not generate Wine's IDL headers. Build the
           # pinned source's real headers with Wine's host widl tool (no stubs).
           make -C wine/build-macos -j4 \
-            include/unknwn.h include/objidlbase.h include/wtypes.h include/mfobjects.h \
+            include/wtypesbase.h include/unknwn.h include/objidlbase.h include/wtypes.h include/mfobjects.h \
             include/mftransform.h include/dwrite.h include/dwrite_3.h \
             2>&1 | tee "$RUNNER_TEMP/wine-idl-headers.log"
-          for header in unknwn.h objidlbase.h wtypes.h mfobjects.h mftransform.h dwrite.h dwrite_3.h; do
+          for header in wtypesbase.h unknwn.h objidlbase.h wtypes.h mfobjects.h mftransform.h dwrite.h dwrite_3.h; do
             test -s "wine/build-macos/include/$header"
           done
       - name: Compile Wine unix iOS archive
