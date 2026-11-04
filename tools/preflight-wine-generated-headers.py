@@ -40,46 +40,85 @@ def main():
                 name = Path(entry).name
                 if name.endswith('.h') and name[:-2] + '.idl' in idl_map:
                     seeds.add(name[:-2])
-    pending = sorted(seeds)
+    # The first generated headers may themselves include more IDL-generated
+    # headers (e.g. d3d11.h -> d3d10shader.h). Resolve to a fixed point.
+    pending = set(seeds)
     discovered = set()
-    while pending:
-        stem = pending.pop()
-        if stem in discovered:
-            continue
-        discovered.add(stem)
-        path = idl_map.get(stem + '.idl')
-        if path:
-            for dep in IDL_REF.findall(path.read_text(errors='replace')):
-                name = Path(dep).name
-                if name in idl_map and name[:-4] not in discovered:
-                    pending.append(name[:-4])
-    targets = ['include/' + name + '.h' for name in sorted(discovered)
-               if not (include_dir / (name + '.h')).is_file()]
-    if not targets:
-        sys.exit('ERROR: no Wine IDL targets found; check source revision')
-    print(f'Wine header preflight: inspected {scanned} sources, building {len(targets)} IDL headers', flush=True)
-    result = subprocess.run(['make', '-C', str(build), '-j4', *targets], check=False)
-    missing = [item for item in targets if not (build / item).is_file()
-               or (build / item).stat().st_size == 0]
+    built = set()
+    missing = set()
     missing_refs = set()
-    for item in targets:
+    make_exit_code = 0
+    max_rounds = len(idl_map) + 1
+    rounds = 0
+    while pending:
+        rounds += 1
+        if rounds > max_rounds:
+            print('ERROR: IDL closure exceeded available source files', file=sys.stderr)
+            make_exit_code = 1
+            break
+        new_stems = pending - discovered
+        pending = set()
+        if not new_stems:
+            break
+        # Expand IDL-to-IDL imports as well as C includes from generated headers.
+        stack = list(sorted(new_stems))
+        while stack:
+            stem = stack.pop()
+            if stem in discovered:
+                continue
+            discovered.add(stem)
+            path = idl_map.get(stem + '.idl')
+            if path:
+                for dep in IDL_REF.findall(path.read_text(errors='replace')):
+                    dep_name = Path(dep).name
+                    if dep_name in idl_map and dep_name[:-4] not in discovered:
+                        stack.append(dep_name[:-4])
+        targets = ['include/' + name + '.h' for name in sorted(discovered)
+                   if name + '.idl' in idl_map
+                   and not (include_dir / (name + '.h')).is_file()
+                   and 'include/' + name + '.h' not in built]
+        if targets:
+            print(f'Wine IDL preflight round {rounds}: compiling {len(targets)} headers', flush=True)
+            result = subprocess.run(['make', '-C', str(build), '-j4', *targets], check=False)
+            if result.returncode:
+                make_exit_code = result.returncode
+            built.update(targets)
+        for item in built:
+            p = build / item
+            if not p.is_file() or p.stat().st_size == 0:
+                missing.add(item)
+                continue
+            for entry in C_INC.findall(p.read_text(errors='replace')):
+                name = Path(entry).name
+                stem = name.removesuffix('.h')
+                if not name.endswith('.h') or stem + '.idl' not in idl_map:
+                    continue
+                if (output_dir / name).is_file() or (include_dir / name).is_file():
+                    continue
+                if stem not in discovered:
+                    pending.add(stem)
+        if make_exit_code or missing:
+            break
+    for item in built:
         p = build / item
         if not p.is_file():
             continue
         for entry in C_INC.findall(p.read_text(errors='replace')):
             name = Path(entry).name
-            stem = name.removesuffix('.h')
-            if name.endswith('.h') and stem + '.idl' in idl_map:
+            if name.endswith('.h') and name[:-2] + '.idl' in idl_map:
                 if not (output_dir / name).is_file() and not (include_dir / name).is_file():
                     missing_refs.add(f'{item} -> include/{name}')
+    targets = sorted(built)
+    print(f'Wine header preflight: inspected {scanned} sources, {len(targets)} generated headers in {rounds} rounds', flush=True)
     report = dict(source_files_inspected=scanned, idl_headers_requested=targets,
-                  make_exit_code=result.returncode, missing_generated_headers=missing,
+                  dependency_closure_rounds=rounds, make_exit_code=make_exit_code,
+                  missing_generated_headers=sorted(missing),
                   missing_transitive_header_references=sorted(missing_refs))
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, indent=2) + '\n')
     for item in missing + sorted(missing_refs):
         print('MISSING: ' + item, file=sys.stderr)
-    if result.returncode or missing or missing_refs:
+    if make_exit_code or missing or missing_refs:
         return 1
     print('PASS: pinned Wine IDL header closure verified before Unix compilation')
     return 0
