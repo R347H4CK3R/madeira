@@ -31,9 +31,24 @@ jobs:
         run: |
           set -euo pipefail
           git submodule sync --recursive
-          git submodule update --init wine
+          # A large Wine clone occasionally times out on GitHub-hosted runners.
+          # Keep the gitlink revision pinned; retry transport failures, not source errors.
+          git -c http.version=HTTP/1.1 config --local http.version HTTP/1.1
+          for attempt in 1 2 3; do
+            if git -c http.version=HTTP/1.1 submodule update --init --depth 1 wine; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "BLOCKED: pinned Wine submodule checkout failed after three attempts" >&2
+              exit 1
+            fi
+            sleep $((attempt * 5))
+          done
           test -s wine/server/Makefile.in
-          git -C wine rev-parse HEAD | tee /tmp/madeira-wine-revision.txt
+          expected="$(git rev-parse HEAD:wine)"
+          actual="$(git -C wine rev-parse HEAD)"
+          test "$expected" = "$actual" || { echo "ERROR: Wine gitlink SHA mismatch" >&2; exit 1; }
+          printf '%s\\n' "$actual" | tee /tmp/madeira-wine-revision.txt
       - name: Install required Wine host build tools
         shell: bash
         run: |
