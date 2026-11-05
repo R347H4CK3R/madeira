@@ -94,7 +94,7 @@ jobs:
           download "$NATIVE_RUN" madeira-parallel-rppairing-ios-arm64 pairing
           download "$NATIVE_RUN" madeira-wine-ntdll-unix-ios-arm64 ntdll
           download "$NATIVE_RUN" madeira-wine-win32u-unix-ios-arm64 win32u
-          download "$DXMT_RUN" madeira-dxmt-ios-arm64-no-d3d12-candidate dxmt
+          download "$DXMT_RUN" madeira-dxmt-ios-arm64-d3d12-candidate dxmt
           for folder in ffmpeg gnutls freetype; do cp -R "$RUNNER_TEMP/$folder/." .; done
           # FEX is a git submodule: do not populate it before submodule init.
           mkdir -p app/Madeira
@@ -134,7 +134,7 @@ jobs:
           if [ -f build/stage-licenses.sh ]; then bash build/stage-licenses.sh; fi
           mkdir -p app/Madeira/x86_64-vcruntime
           if [ ! -s app/Madeira/x86_64-vcruntime/vcruntime140.dll ]; then
-            echo 'Microsoft VC++ x64 runtime is NOT included. Install/import the licensed official Microsoft redistributable into the Wine guest.' > app/Madeira/x86_64-vcruntime/README-runtime-not-included.txt
+            echo 'Microsoft VC++ x64 runtime is NOT bundled. Use the official Microsoft VC++ redist through the Wine guest setup procedure. See docs/VC-REDIST-GUEST-SETUP.md.' > app/Madeira/x86_64-vcruntime/README-runtime-not-included.txt
             echo "::warning::Microsoft Windows runtime not bundled. Compiled IPA is only an integration candidate."
           fi
       - name: Compile actual iOS app with Xcode
