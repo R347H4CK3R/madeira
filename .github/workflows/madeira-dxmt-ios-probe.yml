@@ -190,11 +190,21 @@ jobs:
           xcrun --sdk macosx --find metallib
           test -s toolchains/llvm-ios-build/lib/libLLVMCore.a
           test -s toolchains/llvm-ios-build/include/llvm/Config/llvm-config.h
-      - name: Compile native DXMT and combine with iOS LLVM
+      - name: Verify pinned D3D12 converter inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Fail closed: D3D12 must have its real matching converter library and
+          # headers, rather than silently shipping a D3D9/D3D11-only archive.
+          test -s app/Madeira/d3d12/libmetalirconverter.dylib
+          test -s madeira-d3d12/third_party/metal-shader-converter/SHA256SUMS
+          test -s madeira-d3d12/src/unix/madeira_ir_unix.mm
+          bash -c 'source build/madeira-d3d12/deps.sh && test -f "$MSC_LIB_IOS" && test -d "$MSC_INCLUDE"'
+          echo "Pinned D3D12 converter validated"
+      - name: Compile native DXMT with D3D12 and combine with iOS LLVM
         shell: bash
         env:
-          # DXMT's D3D12 shader converter remains an independent runtime gate.
-          MADEIRA_ALLOW_NO_D3D12: '1'
+          MADEIRA_ALLOW_NO_D3D12: '0'
         run: |
           set -euo pipefail
           bash build/dxmt-ios/build.sh 2>&1 | tee "$RUNNER_TEMP/dxmt-ios-build.log"
@@ -209,7 +219,7 @@ jobs:
       - name: Save compiled DXMT candidate
         uses: actions/upload-artifact@v6
         with:
-          name: madeira-dxmt-ios-arm64-no-d3d12-candidate
+          name: madeira-dxmt-ios-arm64-d3d12-candidate
           path: app/Madeira/libdxmt_combined.a
           if-no-files-found: error
           retention-days: 5
