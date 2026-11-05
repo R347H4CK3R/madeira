@@ -80,8 +80,8 @@ jobs:
           download "$NATIVE_RUN" madeira-wine-win32u-unix-ios-arm64 win32u
           download "$DXMT_RUN" madeira-dxmt-ios-arm64-no-d3d12-candidate dxmt
           for folder in ffmpeg gnutls freetype; do cp -R "$RUNNER_TEMP/$folder/." .; done
-          mkdir -p FEX/build-ios app/Madeira
-          cp -R "$RUNNER_TEMP/fex/." FEX/build-ios/
+          # FEX is a git submodule: do not populate it before submodule init.
+          mkdir -p app/Madeira
           for item in "wineserver|libwineserver.a" "pairing|libmadeira_rppairing.a" "ntdll|libntdll_unix.a" "win32u|libwin32u_unix.a" "dxmt|libdxmt_combined.a"; do
             folder="$(echo "$item" | cut -d'|' -f1)"
             name="$(echo "$item" | cut -d'|' -f2)"
@@ -89,7 +89,7 @@ jobs:
             if [ -z "$file" ]; then echo "::error::Artifact missing $name"; exit 1; fi
             cp "$file" "app/Madeira/$name"
           done
-          for lib in app/Madeira/*.a FEX/build-ios/FEXCore/Source/*.a; do
+          for lib in app/Madeira/*.a; do
             test -s "$lib"
             xcrun --sdk iphoneos lipo -archs "$lib" | grep -Eq '(^| )arm64($| )'
           done
@@ -97,8 +97,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git submodule sync --recursive
-          git submodule update --init --recursive FEX wine dxmt
+          # Record repository source preparation failures in an uploaded artifact.
+          { git submodule sync --recursive && git submodule update --init --recursive FEX wine dxmt; } 2>&1 | tee "$RUNNER_TEMP/integration-preparation.log"
+          # Stage prebuilt FEX archives only after Git has initialized its submodule.
+          mkdir -p FEX/build-ios
+          cp -R "$RUNNER_TEMP/fex/." FEX/build-ios/
+          fex_archives=0
+          for lib in FEX/build-ios/FEXCore/Source/*.a; do
+            test -s "$lib"
+            xcrun --sdk iphoneos lipo -archs "$lib" | grep -Eq '(^| )arm64($| )'
+            fex_archives=$((fex_archives + 1))
+          done
+          test "$fex_archives" -ge 7
           if [ -f build/stage-licenses.sh ]; then bash build/stage-licenses.sh; fi
           mkdir -p app/Madeira/x86_64-vcruntime
           if [ ! -s app/Madeira/x86_64-vcruntime/vcruntime140.dll ]; then
@@ -138,6 +148,7 @@ jobs:
         with:
           name: madeira-ipa-integration-diagnostics
           path: |
+            ${{ runner.temp }}/integration-preparation.log
             ${{ runner.temp }}/integrated-xcode.log
             ${{ runner.temp }}/ipa-sha256.txt
           if-no-files-found: warn
