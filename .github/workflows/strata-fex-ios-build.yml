@@ -72,7 +72,7 @@ jobs:
             FEXCore/IR/IRDefines_Dispatch.inc; do
             generated="FEX/build-ios/include/$relative"
             test -s "$generated" || { echo "::error::Missing generated FEX header: $generated"; exit 1; }
-            echo "$generated" | tee -a /tmp/madeira-fex-verified.txt
+            echo "Verified generated FEX header: $generated"
           done
       - name: Upload all verified native archives
         uses: actions/upload-artifact@v6
@@ -86,7 +86,6 @@ jobs:
             FEX/build-ios/External/cephes/libcephes_128bit.a
             FEX/build-ios/External/xxhash/cmake_unofficial/libxxhash.a
             FEX/build-ios/External/SoftFloat-3e/libsoftfloat_3e.a
-            # Match the compiled archive's own generated configuration and IR headers.
             FEX/build-ios/include/
           if-no-files-found: error
       - name: Preserve FEX compiler diagnostics
