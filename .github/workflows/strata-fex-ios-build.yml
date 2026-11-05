@@ -62,6 +62,18 @@ jobs:
             xcrun --sdk iphoneos lipo -archs "$file" | grep -Eq '(^| )arm64($| )' || { echo "::error::FEX archive not ARM64: $file"; exit 1; }
             echo "$file" | tee -a /tmp/madeira-fex-verified.txt
           done
+          # FEX's CMake build generates C++ header fragments used by FEXBridge.
+          # They must travel with these exact-revision libraries, not be faked
+          # or regenerated using a potentially incompatible source revision.
+          for relative in \
+            FEXCore/Config/ConfigValues.inl \
+            FEXCore/Config/ConfigOptions.inl \
+            FEXCore/IR/IRDefines.inc \
+            FEXCore/IR/IRDefines_Dispatch.inc; do
+            generated="FEX/build-ios/include/$relative"
+            test -s "$generated" || { echo "::error::Missing generated FEX header: $generated"; exit 1; }
+            echo "$generated" | tee -a /tmp/madeira-fex-verified.txt
+          done
       - name: Upload all verified native archives
         uses: actions/upload-artifact@v6
         with:
@@ -74,6 +86,8 @@ jobs:
             FEX/build-ios/External/cephes/libcephes_128bit.a
             FEX/build-ios/External/xxhash/cmake_unofficial/libxxhash.a
             FEX/build-ios/External/SoftFloat-3e/libsoftfloat_3e.a
+            # Match the compiled archive's own generated configuration and IR headers.
+            FEX/build-ios/include/
           if-no-files-found: error
       - name: Preserve FEX compiler diagnostics
         if: always()
