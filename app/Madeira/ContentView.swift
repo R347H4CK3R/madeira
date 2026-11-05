@@ -3276,7 +3276,7 @@ struct ContentView: View {
         }
     }
 
-    /// Import only user-supplied, authentic x64 PE runtime DLLs into this
+    /// Import user-supplied, x64 PE runtime DLLs into this
     /// device's Wine prefix. Microsoft files are never included in the IPA.
     /// Users can transfer signed runtime DLLs to Documents/vc-runtime-x64
     /// through Files, then launch a Wine session to complete setup.
