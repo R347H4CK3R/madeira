@@ -3276,6 +3276,54 @@ struct ContentView: View {
         }
     }
 
+    /// Import only user-supplied, authentic x64 PE runtime DLLs into this
+    /// device's Wine prefix. Microsoft files are never included in the IPA.
+    /// Users can transfer signed runtime DLLs to Documents/vc-runtime-x64
+    /// through Files, then launch a Wine session to complete setup.
+    private func stagePersonalVCRuntime() {
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let source = documents.appendingPathComponent("vc-runtime-x64", isDirectory: true)
+        let target = documents.appendingPathComponent("wine/drive_c/windows/system32", isDirectory: true)
+        let manager = FileManager.default
+        let required = ["vcruntime140.dll", "msvcp140.dll"]
+        let optional = ["vcruntime140_1.dll", "msvcp140_1.dll", "msvcp140_2.dll", "concrt140.dll", "vcomp140.dll"]
+
+        func isX64PE(_ url: URL) -> Bool {
+            guard let data = try? Data(contentsOf: url, options: .mappedIfSafe),
+                  data.count >= 0x40, data[0] == 0x4d, data[1] == 0x5a else { return false }
+            let offset = Int(data[0x3c]) | (Int(data[0x3d]) << 8)
+                | (Int(data[0x3e]) << 16) | (Int(data[0x3f]) << 24)
+            guard offset >= 0x40, offset + 6 <= data.count else { return false }
+            return data[offset] == 0x50 && data[offset + 1] == 0x45
+                && data[offset + 2] == 0 && data[offset + 3] == 0
+                && data[offset + 4] == 0x64 && data[offset + 5] == 0x86
+        }
+        guard manager.fileExists(atPath: source.path) else {
+            logStore.log("[vc-runtime] Not imported. Place verified Microsoft x64 runtime DLLs in Documents/vc-runtime-x64.", level: .info)
+            return
+        }
+        guard required.allSatisfy({ isX64PE(source.appendingPathComponent($0)) }) else {
+            logStore.log("[vc-runtime] Missing or invalid x64 PE runtime files (vcruntime140.dll and msvcp140.dll required).", level: .error)
+            return
+        }
+        do {
+            try manager.createDirectory(at: target, withIntermediateDirectories: true)
+            var count = 0
+            for name in required + optional {
+                let from = source.appendingPathComponent(name)
+                let to = target.appendingPathComponent(name)
+                guard isX64PE(from) else { continue }
+                // Never clobber an already-installed Wine or newer native DLL.
+                guard !manager.fileExists(atPath: to.path) else { continue }
+                try manager.copyItem(at: from, to: to)
+                count += 1
+            }
+            logStore.log("[vc-runtime] Installed \(count) user-supplied x64 runtime DLLs into Wine prefix.", level: .success)
+        } catch {
+            logStore.log("[vc-runtime] Import failed: \(error.localizedDescription)", level: .error)
+        }
+    }
+
     private func startWineProcess() {
         logStore.log("Starting Wine process...")
 
@@ -3286,6 +3334,7 @@ struct ContentView: View {
 
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let winePrefixPath = documentsPath.appendingPathComponent("wine").path
+        stagePersonalVCRuntime()
 
         // Call synchronously — caller already waited for wineserver to be ready
         let result = wine_process_start(winePrefixPath)
