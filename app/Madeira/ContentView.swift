@@ -3276,17 +3276,19 @@ struct ContentView: View {
         }
     }
 
-    /// Import user-supplied, x64 PE runtime DLLs into this
-    /// device's Wine prefix. Microsoft files are never included in the IPA.
-    /// Users can transfer signed runtime DLLs to Documents/vc-runtime-x64
-    /// through Files, then launch a Wine session to complete setup.
+    /// Import locally supplied x64 PE guest runtime libraries from a private
+    /// IPA bundle or from Documents/vc-runtime-x64 on a public installation.
+    /// Neither source changes the architecture of the native iOS executable.
     private func stagePersonalVCRuntime() {
         let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let source = documents.appendingPathComponent("vc-runtime-x64", isDirectory: true)
         let target = documents.appendingPathComponent("wine/drive_c/windows/system32", isDirectory: true)
         let manager = FileManager.default
         let required = ["vcruntime140.dll", "msvcp140.dll"]
         let optional = ["vcruntime140_1.dll", "msvcp140_1.dll", "msvcp140_2.dll", "concrt140.dll", "vcomp140.dll"]
+        let sources = [
+            documents.appendingPathComponent("vc-runtime-x64", isDirectory: true),
+            Bundle.main.bundleURL.appendingPathComponent("x86_64-vcruntime", isDirectory: true)
+        ]
 
         func isX64PE(_ url: URL) -> Bool {
             guard let data = try? Data(contentsOf: url, options: .mappedIfSafe),
@@ -3298,12 +3300,10 @@ struct ContentView: View {
                 && data[offset + 2] == 0 && data[offset + 3] == 0
                 && data[offset + 4] == 0x64 && data[offset + 5] == 0x86
         }
-        guard manager.fileExists(atPath: source.path) else {
-            logStore.log("[vc-runtime] Not imported. Place verified Microsoft x64 runtime DLLs in Documents/vc-runtime-x64.", level: .info)
-            return
-        }
-        guard required.allSatisfy({ isX64PE(source.appendingPathComponent($0)) }) else {
-            logStore.log("[vc-runtime] Missing or invalid x64 PE runtime files (vcruntime140.dll and msvcp140.dll required).", level: .error)
+        guard let source = sources.first(where: { folder in
+            required.allSatisfy { isX64PE(folder.appendingPathComponent($0)) }
+        }) else {
+            logStore.log("[vc-runtime] No valid x64 runtime in Documents/vc-runtime-x64 or bundle x86_64-vcruntime.", level: .info)
             return
         }
         do {
