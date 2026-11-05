@@ -54,7 +54,7 @@ jobs:
           interface='app/Frameworks/StikJIT.xcframework/ios-arm64/StikJIT.framework/Modules/StikJIT.swiftmodule/arm64-apple-ios.private.swiftinterface'
           test -s "$interface"
           grep -q 'swift-compiler-version: Apple Swift version 6.4' "$interface"
-          swiftc -version | grep -Eq 'Swift version 6\\.4([. ]|$)' || {
+          swiftc -version | grep -Eq 'Swift version 6[.]4([. ]|$)' || {
             echo '::error::StikJIT requires Swift 6.4 (Xcode 27), not the runner default.'
             exit 1
           }
