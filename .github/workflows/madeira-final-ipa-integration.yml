@@ -157,6 +157,14 @@ jobs:
           unzip -t Madeira-Strata-integration-unsigned.ipa
           shasum -a 256 Madeira-Strata-integration-unsigned.ipa | tee "$RUNNER_TEMP/ipa-sha256.txt"
           echo 'Compiled unsigned integration IPA; Microsoft runtime, physical-device JIT and gameplay remain unverified.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Audit packaged public IPA resources and proprietary runtime exclusion
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/audit-packaged-ipa.py \
+            Madeira-Strata-integration-unsigned.ipa \
+            --public-build --report "$RUNNER_TEMP/ipa-package-audit.json"
+          echo 'Package resource audit passed; JIT and game execution remain unverified.' >> "$GITHUB_STEP_SUMMARY"
       - name: Upload real compiled IPA
         uses: actions/upload-artifact@v6
         with:
@@ -173,4 +181,5 @@ jobs:
             ${{ runner.temp }}/integration-preparation.log
             ${{ runner.temp }}/integrated-xcode.log
             ${{ runner.temp }}/ipa-sha256.txt
+            ${{ runner.temp }}/ipa-package-audit.json
           if-no-files-found: warn
