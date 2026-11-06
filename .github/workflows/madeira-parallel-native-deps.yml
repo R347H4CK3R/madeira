@@ -1,0 +1,413 @@
+name: Madeira parallel native dependency builds
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ffmpeg-ios:
+    name: FFmpeg iOS arm64
+    runs-on: macos-15-intel
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build pinned LGPL FFmpeg sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash build/ffmpeg/build.sh 2>&1 | tee "$RUNNER_TEMP/ffmpeg-build.log"
+          for lib in avformat avcodec swresample avutil; do
+            archive="app/Madeira/lib${lib}.a"
+            test -s "$archive"
+            xcrun --sdk iphoneos ar t "$archive" > "$RUNNER_TEMP/ffmpeg-${lib}-members.txt"
+            test -s "$RUNNER_TEMP/ffmpeg-${lib}-members.txt"
+          done
+      - name: Upload native FFmpeg archives
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-parallel-ffmpeg-ios-arm64
+          path: |
+            app/Madeira/libavformat.a
+            app/Madeira/libavcodec.a
+            app/Madeira/libswresample.a
+            app/Madeira/libavutil.a
+            toolchains/ffmpeg-ios/include/
+          if-no-files-found: error
+      - name: Preserve FFmpeg diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-parallel-ffmpeg-logs
+          path: |
+            ${{ runner.temp }}/ffmpeg-build.log
+            build/ffmpeg/obj/configure.log
+            build/ffmpeg/obj/make.log
+          if-no-files-found: warn
+  pairing-ios:
+    name: Rust pairing iOS arm64
+    runs-on: macos-15-intel
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build pinned Rust pairing sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup target add aarch64-apple-ios
+          bash build/rppairing-ios/build.sh 2>&1 | tee "$RUNNER_TEMP/pairing-build.log"
+          archive="app/Madeira/libmadeira_rppairing.a"
+          test -s "$archive"
+          xcrun --sdk iphoneos ar t "$archive" > "$RUNNER_TEMP/pairing-members.txt"
+          test -s "$RUNNER_TEMP/pairing-members.txt"
+          xcrun --sdk iphoneos lipo -archs "$archive" | grep -Eq '(^| )arm64($| )'
+      - name: Upload native pairing archive
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-parallel-rppairing-ios-arm64
+          path: app/Madeira/libmadeira_rppairing.a
+          if-no-files-found: error
+      - name: Preserve pairing diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-parallel-rppairing-logs
+          path: ${{ runner.temp }}/pairing-build.log
+          if-no-files-found: warn
+  gnutls-ios:
+    name: GnuTLS crypto stack iOS arm64
+    runs-on: macos-15-intel
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v6
+      - name: Compile pinned GMP, Nettle and GnuTLS
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash build/gnutls-ios/build.sh 2>&1 | tee "$RUNNER_TEMP/gnutls-build.log"
+          for lib in gnutls nettle hogweed gmp; do
+            archive="toolchains/gnutls-ios/lib/lib${lib}.a"
+            test -s "$archive"
+            xcrun --sdk iphoneos ar t "$archive" > "$RUNNER_TEMP/gnutls-${lib}-members.txt"
+            test -s "$RUNNER_TEMP/gnutls-${lib}-members.txt"
+          done
+          mkdir -p app/Madeira
+          for lib in gnutls nettle hogweed gmp; do cp "toolchains/gnutls-ios/lib/lib${lib}.a" "app/Madeira/lib${lib}.a"; done
+      - name: Upload compiled crypto archives and headers
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-parallel-gnutls-ios-arm64
+          path: |
+            toolchains/gnutls-ios/lib/libgnutls.a
+            toolchains/gnutls-ios/lib/libnettle.a
+            toolchains/gnutls-ios/lib/libhogweed.a
+            toolchains/gnutls-ios/lib/libgmp.a
+            toolchains/gnutls-ios/include/
+            app/Madeira/libgnutls.a
+            app/Madeira/libnettle.a
+            app/Madeira/libhogweed.a
+            app/Madeira/libgmp.a
+          if-no-files-found: error
+      - name: Preserve crypto build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-parallel-gnutls-logs
+          path: |
+            ${{ runner.temp }}/gnutls-build.log
+            build/gnutls-ios/obj/*-configure.log
+            build/gnutls-ios/obj/*-make.log
+          if-no-files-found: warn
+
+  freetype-ios:
+    name: FreeType iOS arm64
+    runs-on: macos-15-intel
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+      - name: Fetch tagged FreeType source and build native font library
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e research/freetype
+          git clone --depth 1 --branch VER-2-13-3 https://github.com/freetype/freetype.git research/freetype
+          test -s research/freetype/include/ft2build.h
+          bash build/freetype-ios/build.sh 2>&1 | tee "$RUNNER_TEMP/freetype-build.log"
+          archive="build/freetype-ios/build/libfreetype.a"
+          test -s "$archive"
+          xcrun --sdk iphoneos ar t "$archive" > "$RUNNER_TEMP/freetype-members.txt"
+          test -s "$RUNNER_TEMP/freetype-members.txt"
+          xcrun --sdk iphoneos lipo -archs "$archive" | grep -Eq '(^| )arm64($| )'
+      - name: Upload compiled FreeType and source headers
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-parallel-freetype-ios-arm64
+          path: |
+            build/freetype-ios/build/libfreetype.a
+            build/freetype-ios/build/include/
+            research/freetype/include/
+          if-no-files-found: error
+      - name: Preserve FreeType build logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-parallel-freetype-logs
+          path: ${{ runner.temp }}/freetype-build.log
+          if-no-files-found: warn
+  wine-unix-ios:
+    name: Wine ${{ matrix.component }} unix library iOS arm64
+    needs: [ffmpeg-ios, gnutls-ios, freetype-ios]
+    runs-on: macos-15-intel
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [ntdll, win32u]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: false
+      - name: Restore compiled FFmpeg and crypto dependencies
+        uses: actions/download-artifact@v7
+        with:
+          name: madeira-parallel-ffmpeg-ios-arm64
+          path: .
+      - name: Restore compiled GnuTLS and crypto dependencies
+        uses: actions/download-artifact@v7
+        with:
+          name: madeira-parallel-gnutls-ios-arm64
+          path: .
+      - name: Restore FreeType archive and headers
+        uses: actions/download-artifact@v7
+        with:
+          name: madeira-parallel-freetype-ios-arm64
+          path: .
+      - name: Verify restored native dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          for lib in avformat avcodec swresample avutil gnutls nettle hogweed gmp; do
+            test -s "app/Madeira/lib${lib}.a"
+          done
+          test -s toolchains/gnutls-ios/lib/libgnutls.a
+          test -d toolchains/gnutls-ios/include
+          test -d toolchains/ffmpeg-ios/include
+          test -s build/freetype-ios/build/libfreetype.a
+          test -s research/freetype/include/ft2build.h
+      - name: Fetch exact pinned Wine source with retries
+        shell: bash
+        run: |
+          set -euo pipefail
+          git submodule sync --recursive
+          git config --local http.version HTTP/1.1
+          for attempt in 1 2 3; do
+            if git -c http.version=HTTP/1.1 submodule update --init --depth 1 wine; then break; fi
+            if [ "$attempt" -eq 3 ]; then echo "Wine checkout failed after retries" >&2; exit 1; fi
+            sleep $((5 * attempt))
+          done
+          expected="$(git rev-parse HEAD:wine)"
+          actual="$(git -C wine rev-parse HEAD)"
+          test "$expected" = "$actual"
+          test -s wine/server/Makefile.in
+      - name: Configure pinned Wine build headers
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew install bison
+          export PATH="$(brew --prefix bison)/bin:$PATH"
+          archive="llvm-mingw-20260421-ucrt-macos-universal.tar.xz"
+          root="llvm-mingw-20260421-ucrt-macos-universal"
+          curl --fail --location --retry 3 --retry-delay 4 "https://github.com/mstorsjo/llvm-mingw/releases/download/20260421/$archive" -o "$RUNNER_TEMP/$archive"
+          echo "bd85a3975723815cef28dbbd2ca2cb0c926f6b348a12a0453f39f7af273cb3f7  $RUNNER_TEMP/$archive" | shasum -a 256 -c -
+          mkdir -p toolchains
+          tar -xf "$RUNNER_TEMP/$archive" -C toolchains
+          export PATH="$GITHUB_WORKSPACE/toolchains/$root/bin:$PATH"
+          command -v aarch64-w64-mingw32-clang
+          mkdir -p wine/build-macos
+          (
+            cd wine/build-macos
+            CC=/usr/bin/clang CXX=/usr/bin/clang++ ../configure --enable-win64 --disable-tests --without-x --without-alsa --without-cups --without-dbus --without-gphoto --without-gstreamer --without-oss --without-pulse --without-sane
+          ) 2>&1 | tee "$RUNNER_TEMP/wine-unix-configure.log"
+          test -s wine/build-macos/include/config.h
+          # Produce the complete source-reachable Wine IDL closure before compiling
+          # either Unix library. Generate actual headers from the pinned Wine tree.
+          python3 tools/preflight-wine-generated-headers.py \
+            --repository "$GITHUB_WORKSPACE" \
+            --wine "$GITHUB_WORKSPACE/wine" \
+            --build "$GITHUB_WORKSPACE/wine/build-macos" \
+            --report "$RUNNER_TEMP/wine-header-preflight.json" \
+            2>&1 | tee "$RUNNER_TEMP/wine-idl-headers.log"
+      - name: Verify native prerequisites before compiling Wine Unix archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$RUNNER_TEMP/wine-header-preflight.json"
+          test -s wine/build-macos/include/config.h
+          test -s toolchains/gnutls-ios/lib/libgnutls.a
+          test -s toolchains/ffmpeg-ios/include/libavcodec/avcodec.h
+          test -s research/freetype/include/ft2build.h
+          xcrun --sdk iphoneos --show-sdk-path
+          xcrun --sdk iphoneos clang --version | head -1
+          # Ensure the IDL preflight report contains a successful make invocation.
+          python3 -c 'import json,os; r=json.load(open(os.environ["RUNNER_TEMP"]+"/wine-header-preflight.json")); assert r["make_exit_code"] == 0 and not r["missing_generated_headers"] and not r["missing_transitive_header_references"], r'
+      - name: Compile Wine unix iOS archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash "build/${{ matrix.component }}-unix/build.sh" 2>&1 | tee "$RUNNER_TEMP/wine-${{ matrix.component }}-unix-build.log"
+          archive="app/Madeira/lib${{ matrix.component }}_unix.a"
+          test -s "$archive"
+          xcrun --sdk iphoneos ar t "$archive" > "$RUNNER_TEMP/wine-${{ matrix.component }}-members.txt"
+          test -s "$RUNNER_TEMP/wine-${{ matrix.component }}-members.txt"
+      - name: Print failed compiler diagnostics for source repairs
+        if: failure()
+        shell: bash
+        run: |
+          set -uo pipefail
+          directory="build/${{ matrix.component }}-unix/obj"
+          echo "::group::Wine ${{ matrix.component }} failed source diagnostics"
+          if [ -d "$directory" ]; then
+            found=0
+            for report in "$directory"/*.err; do
+              [ -s "$report" ] || continue
+              found=1
+              echo "===== $report ====="
+              grep -nE -C 4 'fatal error:|error:|undefined|no such file|not found' "$report" | head -n 120 || sed -n '1,120p' "$report"
+            done
+            [ "$found" -eq 1 ] || echo "No nonempty per-source compiler error files found"
+          else
+            echo "Object diagnostics directory was not created"
+          fi
+          echo "::endgroup::"
+      - name: Upload verified Wine native archive
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-wine-${{ matrix.component }}-unix-ios-arm64
+          path: app/Madeira/lib${{ matrix.component }}_unix.a
+          if-no-files-found: error
+      - name: Preserve Wine unix compile diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-wine-${{ matrix.component }}-unix-logs
+          path: |
+            ${{ runner.temp }}/wine-unix-configure.log
+            ${{ runner.temp }}/wine-idl-headers.log
+            ${{ runner.temp }}/wine-header-preflight.json
+            ${{ runner.temp }}/wine-${{ matrix.component }}-unix-build.log
+            build/${{ matrix.component }}-unix/obj/*.err
+          if-no-files-found: warn
+
+  native-link-inputs:
+    name: Assemble verified native inputs and audit IPA blockers
+    needs: [ffmpeg-ios, pairing-ios, gnutls-ios, freetype-ios, wine-unix-ios]
+    runs-on: macos-15-intel
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+      - name: Restore native FFmpeg archives
+        uses: actions/download-artifact@v6
+        with:
+          name: madeira-parallel-ffmpeg-ios-arm64
+          path: .
+      - name: Restore native crypto archives
+        uses: actions/download-artifact@v6
+        with:
+          name: madeira-parallel-gnutls-ios-arm64
+          path: .
+      - name: Restore native Rust pairing archive
+        uses: actions/download-artifact@v6
+        with:
+          name: madeira-parallel-rppairing-ios-arm64
+          path: ${{ runner.temp }}/pairing-archive
+      - name: Restore native Wine NTDLL archive
+        uses: actions/download-artifact@v6
+        with:
+          name: madeira-wine-ntdll-unix-ios-arm64
+          path: ${{ runner.temp }}/ntdll-archive
+      - name: Restore native Wine Win32u archive
+        uses: actions/download-artifact@v6
+        with:
+          name: madeira-wine-win32u-unix-ios-arm64
+          path: ${{ runner.temp }}/win32u-archive
+      - name: Place independently compiled native archive outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p app/Madeira
+          cp "$RUNNER_TEMP/pairing-archive/libmadeira_rppairing.a" app/Madeira/
+          cp "$RUNNER_TEMP/ntdll-archive/libntdll_unix.a" app/Madeira/
+          cp "$RUNNER_TEMP/win32u-archive/libwin32u_unix.a" app/Madeira/
+          for lib in ntdll_unix win32u_unix madeira_rppairing avformat avcodec swresample avutil gnutls nettle hogweed gmp; do
+            archive="app/Madeira/lib${lib}.a"
+            test -s "$archive"
+            xcrun --sdk iphoneos lipo -archs "$archive" | grep -Eq '(^| )arm64($| )'
+          done
+      - name: Fetch Wine server and FEX artifacts from same exact source commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # Fetch *only* successful PR builds of this identical source commit.
+          # A passing build from another commit is not a valid link input.
+          head_sha="${PR_HEAD_SHA:-$GITHUB_SHA}"
+          locate_run() {
+            gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$1/runs?event=pull_request&head_sha=$head_sha&per_page=100" \
+              --jq '[.workflow_runs[] | select(.status == "completed" and .conclusion == "success")] | sort_by(.created_at) | reverse | .[0].id // empty'
+          }
+          wine_run="$(locate_run 405294765)"
+          if [ -n "$wine_run" ]; then
+            mkdir -p "$RUNNER_TEMP/wine-stage"
+            if gh run download "$wine_run" --repo "$GITHUB_REPOSITORY" \
+                --name madeira-wineserver-ios-arm64-patched --dir "$RUNNER_TEMP/wine-stage"; then
+              cp "$RUNNER_TEMP/wine-stage/libwineserver.a" app/Madeira/libwineserver.a
+              xcrun --sdk iphoneos lipo -archs app/Madeira/libwineserver.a | grep -Eq '(^| )arm64($| )'
+            else
+              echo "::warning::Wine server artifact unavailable for verified run $wine_run"
+            fi
+          else
+            echo "::warning::No successful Wine server run for commit $head_sha"
+          fi
+          fex_run="$(locate_run 406320885)"
+          if [ -n "$fex_run" ]; then
+            mkdir -p "$RUNNER_TEMP/fex-stage" FEX/build-ios
+            if gh run download "$fex_run" --repo "$GITHUB_REPOSITORY" \
+                --name madeira-fex-ios-arm64-candidate --dir "$RUNNER_TEMP/fex-stage"; then
+              cp -R "$RUNNER_TEMP/fex-stage/." FEX/build-ios/
+              for lib in FEXCore/Source/libFEXCore.a FEXCore/Source/libFEXCore_Base.a \
+                         FEXCore/Source/libJemallocLibs.a External/fmt/libfmt.a \
+                         External/cephes/libcephes_128bit.a \
+                         External/xxhash/cmake_unofficial/libxxhash.a \
+                         External/SoftFloat-3e/libsoftfloat_3e.a; do
+                test -s "FEX/build-ios/$lib"
+                xcrun --sdk iphoneos lipo -archs "FEX/build-ios/$lib" | grep -Eq '(^| )arm64($| )'
+              done
+            else
+              echo "::warning::FEX artifact unavailable for verified run $fex_run"
+            fi
+          else
+            echo "::warning::No successful FEX run for commit $head_sha"
+          fi
+          echo "Source commit for cross-workflow artifacts: $head_sha"
+      - name: Audit complete IPA inputs without fabricating an app
+        shell: bash
+        run: |
+          set -euo pipefail
+          if python3 tools/audit-strata-ipa-inputs.py --output "$RUNNER_TEMP/madeira-integrated-inputs.json"; then
+            echo "All audited files present; Xcode linking and runtime verification are still required." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Native artifact integration complete but IPA prerequisites remain missing; no IPA was built." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          cat "$RUNNER_TEMP/madeira-integrated-inputs.json"
+      - name: Preserve integrated input readiness audit
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-integrated-ipa-inputs-audit
+          path: ${{ runner.temp }}/madeira-integrated-inputs.json
+          if-no-files-found: error

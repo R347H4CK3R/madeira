@@ -176,8 +176,11 @@ require('if model.startingJIT == entry.id {' in library and 'Text("Starting JIT"
         "the Play button reads Starting JIT with a spinner meanwhile; the details page stays up for it, "
         "and closes for JIT setup")
 enable_jit = function(content, "private func enableJIT()")
-require(enable_jit.count("launchAfterJITEnded(started: false)") == 2 and enable_jit.count("launchAfterJITEnded(started: true)") == 1,
+require(enable_jit.count("launchAfterJITEnded(started: false)") == 3 and enable_jit.count("launchAfterJITEnded(started: true)") == 1,
         "every way Enable JIT ends settles the waiting game")
+strata_guard = enable_jit.split('if getenv("LC_HOME_PATH") != nil && !StikJITHelper.ready {', 1)[1].split('jitStatus = .testing', 1)[0]
+require('launchAfterJITEnded(started: false)' in strata_guard and 'return' in strata_guard,
+        "Strata host JIT rejection clears the waiting launch")
 play = function(content, "private func launchLibraryEntry(")
 require("guard jitReadyForLaunch(inLibrary: true, entry: entry.id, then: { startLibraryEntry(entry) }) else { return }" in play
         and play.index("cloudClear(") < play.index("jitReadyForLaunch(")

@@ -1,0 +1,264 @@
+name: Madeira macOS dependency and build probe
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  wineserver-native-probe:
+    name: Compile pinned Wine server for iOS arm64
+    runs-on: macos-15-intel
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: false
+      - name: Verify Intel host and iOS ARM64 cross-compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "x86_64"
+          xcodebuild -version
+          sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
+          test -d "$sdk"
+          printf 'int madeira_arm64_probe(void) { return 0; }\n' > "$RUNNER_TEMP/madeira-arm64-probe.c"
+          xcrun --sdk iphoneos clang -arch arm64 -isysroot "$sdk" -miphoneos-version-min=17.0 -c "$RUNNER_TEMP/madeira-arm64-probe.c" -o "$RUNNER_TEMP/madeira-arm64-probe.o"
+          xcrun --sdk iphoneos lipo -archs "$RUNNER_TEMP/madeira-arm64-probe.o" | grep -Eq '(^| )arm64($| )'
+          echo "Intel macOS host can produce an iOS arm64 object; full Wine compilation remains unverified."
+      - name: Checkout exact Wine revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          git submodule sync --recursive
+          # A large Wine clone occasionally times out on GitHub-hosted runners.
+          # Keep the gitlink revision pinned; retry transport failures, not source errors.
+          git -c http.version=HTTP/1.1 config --local http.version HTTP/1.1
+          for attempt in 1 2 3; do
+            if git -c http.version=HTTP/1.1 submodule update --init --depth 1 wine; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "BLOCKED: pinned Wine submodule checkout failed after three attempts" >&2
+              exit 1
+            fi
+            sleep $((attempt * 5))
+          done
+          test -s wine/server/Makefile.in
+          expected="$(git rev-parse HEAD:wine)"
+          actual="$(git -C wine rev-parse HEAD)"
+          test "$expected" = "$actual" || { echo "ERROR: Wine gitlink SHA mismatch" >&2; exit 1; }
+          echo "$actual" | tee /tmp/madeira-wine-revision.txt
+      - name: Install required Wine host build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew install bison
+          echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+          "$(brew --prefix bison)/bin/bison" --version | head -1
+      - name: Install pinned ARM64 PE cross-toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Wine configure on the Intel macOS host requires ARM64 PE/COFF cross-tools.
+          # This is the exact, checksummed open-source toolchain already pinned
+          # in tools/bootstrap-strata-deps.sh; it is not an iOS SDK.
+          archive="llvm-mingw-20260421-ucrt-macos-universal.tar.xz"
+          root="llvm-mingw-20260421-ucrt-macos-universal"
+          url="https://github.com/mstorsjo/llvm-mingw/releases/download/20260421/$archive"
+          sha256="bd85a3975723815cef28dbbd2ca2cb0c926f6b348a12a0453f39f7af273cb3f7"
+          curl --fail --location --retry 3 --retry-delay 4 "$url" -o "$RUNNER_TEMP/$archive"
+          echo "$sha256  $RUNNER_TEMP/$archive" | shasum -a 256 -c -
+          mkdir -p toolchains
+          tar -xf "$RUNNER_TEMP/$archive" -C toolchains
+          toolbin="$GITHUB_WORKSPACE/toolchains/$root/bin"
+          test -d "$toolbin"
+          export PATH="$toolbin:$PATH"
+          echo "$toolbin" >> "$GITHUB_PATH"
+          # Distinguish absent cross-compilation tools from Wine compiler errors.
+          command -v aarch64-w64-mingw32-clang || command -v aarch64-w64-mingw32-gcc
+          command -v llvm-dlltool
+          command -v lld-link
+          echo "Pinned ARM64 Windows PE toolchain available; iOS native compilation is not yet verified."
+      - name: Generate Wine host configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p wine/build-macos
+          cd wine/build-macos
+          # Wine defaults to 32-bit on an x86_64 native host unless --enable-win64 is set.
+          # This produces a host configuration for the probe; ARM64 iOS ABI/runtime need separate validation.
+          CC=/usr/bin/clang CXX=/usr/bin/clang++ ../configure --enable-win64 --disable-tests --without-x --without-alsa --without-cups --without-dbus --without-gphoto --without-gstreamer --without-oss --without-pulse --without-sane --without-udev 2>&1 | tee /tmp/madeira-wine-configure.log
+          test -s include/config.h
+      - name: Compile Wine server base
+        shell: bash
+        run: |
+          set -o pipefail
+          bash build/wineserver/build-base.sh 2>&1 | tee /tmp/madeira-wineserver-base.log
+          test ${PIPESTATUS[0]} -eq 0
+          xcrun --sdk iphoneos ar t build/wineserver/obj/libwineserver.a | grep -Fx 'request.o'
+      - name: Validate candidate archive architecture
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/wineserver/obj/libwineserver.a
+          xcrun --sdk iphoneos ar t build/wineserver/obj/libwineserver.a | tee /tmp/madeira-wineserver-members.txt
+          test "$(grep -Fxc 'request.o' /tmp/madeira-wineserver-members.txt)" -eq 1
+          mkdir -p /tmp/madeira-wineserver-architecture
+          cd /tmp/madeira-wineserver-architecture
+          xcrun --sdk iphoneos ar x "$GITHUB_WORKSPACE/build/wineserver/obj/libwineserver.a" request.o
+          xcrun --sdk iphoneos lipo -archs request.o | tee /tmp/madeira-wineserver-arch.txt
+          grep -Eq '(^| )arm64($| )' /tmp/madeira-wineserver-arch.txt
+      - name: Save candidate native archive
+        if: success()
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-wineserver-ios-arm64-base
+          path: build/wineserver/obj/libwineserver.a
+          if-no-files-found: error
+      - name: Apply pinned Wine server iOS patches
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v llvm-objcopy >/dev/null 2>&1 && ! test -x /opt/homebrew/opt/llvm/bin/llvm-objcopy; then
+            brew install llvm
+          fi
+          export PATH="$(brew --prefix llvm)/bin:$PATH"
+          command -v llvm-objcopy
+          bash build/wineserver/build.sh all 2>&1 | tee /tmp/madeira-wineserver-patched.log
+          test -s app/Madeira/libwineserver.a
+          xcrun --sdk iphoneos ar t app/Madeira/libwineserver.a | tee /tmp/madeira-wineserver-patched-members.txt
+          grep -Fxq 'request_ios.o' /tmp/madeira-wineserver-patched-members.txt
+      - name: Verify all patched Wine archive objects have iOS arm64 architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/verify-wineserver-ios-arm64.sh app/Madeira/libwineserver.a /tmp/madeira-wineserver-architecture-verified.txt
+      - name: Save patched Wine server archive
+        if: success()
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-wineserver-ios-arm64-patched
+          path: app/Madeira/libwineserver.a
+          if-no-files-found: error
+      - name: Compile pinned LGPL FFmpeg libraries for iOS arm64
+        id: ffmpeg-ios
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Independent native dependency stage; Wine archive success remains valid if it fails.
+          bash build/ffmpeg/build.sh 2>&1 | tee /tmp/madeira-ffmpeg-ios-build.log
+          for lib in avformat avcodec swresample avutil; do
+            file="app/Madeira/lib${lib}.a"
+            test -s "$file"
+            xcrun --sdk iphoneos ar t "$file" > "$RUNNER_TEMP/madeira-ffmpeg-${lib}-members.txt"
+            test -s "$RUNNER_TEMP/madeira-ffmpeg-${lib}-members.txt"
+          done
+      - name: Save verified FFmpeg native libraries
+        if: steps.ffmpeg-ios.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-ffmpeg-ios-arm64
+          path: |
+            app/Madeira/libavformat.a
+            app/Madeira/libavcodec.a
+            app/Madeira/libswresample.a
+            app/Madeira/libavutil.a
+          if-no-files-found: error
+      - name: Compile Rust pairing library for iOS arm64
+        id: pairing-ios
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup target add aarch64-apple-ios
+          bash build/rppairing-ios/build.sh 2>&1 | tee /tmp/madeira-rppairing-ios-build.log
+          lib="app/Madeira/libmadeira_rppairing.a"
+          test -s "$lib"
+          xcrun --sdk iphoneos ar t "$lib" > "$RUNNER_TEMP/madeira-rppairing-members.txt"
+          test -s "$RUNNER_TEMP/madeira-rppairing-members.txt"
+          xcrun --sdk iphoneos lipo -archs "$lib" | tee /tmp/madeira-rppairing-arch.txt
+          grep -Eq '(^| )arm64($| )' /tmp/madeira-rppairing-arch.txt
+      - name: Save verified Rust pairing library
+        if: steps.pairing-ios.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-rppairing-ios-arm64
+          path: app/Madeira/libmadeira_rppairing.a
+          if-no-files-found: error
+      - name: Audit complete IPA link inputs
+        id: ipa-inputs
+        shell: bash
+        run: |
+          if python3 tools/audit-strata-ipa-inputs.py --output /tmp/madeira-ipa-prerequisites.json; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "No IPA: additional native build outputs or user-supplied runtime are required." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Build Madeira Debug app only if native inputs exist
+        if: steps.ipa-inputs.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -project app/Madeira.xcodeproj -scheme Madeira -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/MadeiraDerived" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' build 2>&1 | tee /tmp/madeira-ipa-build.log
+      - name: Package verified compiled IPA
+        if: steps.ipa-inputs.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$RUNNER_TEMP/MadeiraDerived/Build/Products/Debug-iphoneos/Madeira.app"
+          test -s "$app/Info.plist"
+          executable=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Info.plist")
+          test -s "$app/$executable"
+          xcrun --sdk iphoneos lipo -archs "$app/$executable" | grep -Eq '(^| )arm64($| )'
+          mkdir -p "$RUNNER_TEMP/ipa-staging/Payload"
+          ditto "$app" "$RUNNER_TEMP/ipa-staging/Payload/Madeira.app"
+          (cd "$RUNNER_TEMP/ipa-staging" && zip -qry "$GITHUB_WORKSPACE/Madeira-Strata-unsigned.ipa" Payload)
+          unzip -t "$GITHUB_WORKSPACE/Madeira-Strata-unsigned.ipa" | tail -1
+          shasum -a 256 "$GITHUB_WORKSPACE/Madeira-Strata-unsigned.ipa" | tee /tmp/madeira-ipa-sha256.txt
+      - name: Upload genuine IPA only after compiler and packaging succeed
+        if: steps.ipa-inputs.outputs.ready == 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: Madeira-Strata-unsigned-IPA
+          path: Madeira-Strata-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
+      - name: Preserve compiler diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: madeira-wineserver-compile-diagnostics
+          path: |
+            /tmp/madeira-wine-revision.txt
+            /tmp/madeira-wine-configure.log
+            /tmp/madeira-wineserver-base.log
+            /tmp/madeira-wineserver-members.txt
+            /tmp/madeira-wineserver-arch.txt
+            /tmp/madeira-wineserver-patched.log
+            /tmp/madeira-wineserver-patched-members.txt
+            /tmp/madeira-wineserver-architecture-verified.txt
+            /tmp/madeira-ipa-prerequisites.json
+            /tmp/madeira-ffmpeg-ios-build.log
+            /tmp/madeira-rppairing-ios-build.log
+            /tmp/madeira-rppairing-arch.txt
+            build/ffmpeg/obj/configure.log
+            build/ffmpeg/obj/make.log
+            /tmp/madeira-ipa-build.log
+            /tmp/madeira-ipa-sha256.txt
+          if-no-files-found: warn
+      - name: Report base build result
+        if: always()
+        shell: bash
+        run: |
+          echo "### Pinned Wine server iOS-arm64 compile probe" >> "$GITHUB_STEP_SUMMARY"
+          if test -s app/Madeira/libwineserver.a; then
+            echo "Patched Wine server archive produced; complete IPA link and device runtime remain unverified." >> "$GITHUB_STEP_SUMMARY"
+          elif test -s build/wineserver/obj/libwineserver.a; then
+            echo "Base Wine server archive produced; patched archive was not completed. See build logs." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No candidate archive produced. See uploaded configure/compile diagnostics." >> "$GITHUB_STEP_SUMMARY"
+          fi

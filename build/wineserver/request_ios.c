@@ -131,6 +131,11 @@ int config_dir_fd = -1;    /* file descriptor for the config dir */
 
 static struct master_socket *master_socket;  /* the master socket object */
 static struct timeout_user *master_timeout;
+#ifdef WINE_IOS
+/* Retain the peer for the lifetime of the injected-only master FD. */
+static int ios_master_dummy_peer = -1;
+static int ios_master_injected_only = 0;
+#endif
 
 #ifdef WINE_IOS
 /* iOS socketpair bypass: fd injected by the app bridge for direct client connection.
@@ -944,6 +949,21 @@ static void acquire_lock(void)
 #endif
     if (bind( fd, (struct sockaddr *)&addr, slen ) == -1)
     {
+#ifdef WINE_IOS
+        if (errno == EPERM || errno == EACCES)
+        {
+            int denied_errno = errno;
+            int pair[2];
+            ws_log("[wineserver] AF_UNIX pathname bind denied (%d) in %s; using injected-client transport", denied_errno, server_dir);
+            if (socketpair(AF_UNIX, SOCK_STREAM, 0, pair) == -1)
+                fatal_error("socketpair fallback: %s\n", strerror(errno));
+            close(fd);
+            fd = pair[0];
+            ios_master_dummy_peer = pair[1];
+            ios_master_injected_only = 1;
+            goto ios_master_ready;
+        }
+#endif
         if ((errno == EEXIST) || (errno == EADDRINUSE))
         {
             if (got_lock)
@@ -959,6 +979,9 @@ static void acquire_lock(void)
     atexit( socket_cleanup );
     chmod( server_socket_name, 0600 );  /* make sure no other user can connect */
     if (listen( fd, 5 ) == -1) fatal_error( "listen: %s\n", strerror( errno ));
+#ifdef WINE_IOS
+ios_master_ready:
+#endif
     /* iOS: make master socket non-blocking so accept() never blocks */
     fcntl( fd, F_SETFL, O_NONBLOCK );
     ws_log("[wineserver] acquire_lock: listening on fd=%d (NONBLOCK), server_dir=%s", fd, server_dir);
@@ -967,7 +990,11 @@ static void acquire_lock(void)
         !(master_socket->fd = create_anonymous_fd( &master_socket_fd_ops, fd, &master_socket->obj, 0 )))
         fatal_error( "out of memory\n" );
     ws_log("[wineserver] acquire_lock: master_socket->fd unix_fd=%d", get_unix_fd(master_socket->fd));
-    set_fd_events( master_socket->fd, POLLIN );
+#ifdef WINE_IOS
+    /* No accept() on dummy socket; clients are injected by fd_ios.c. */
+    if (!ios_master_injected_only)
+#endif
+        set_fd_events( master_socket->fd, POLLIN );
     make_object_permanent( &master_socket->obj );
 }
 

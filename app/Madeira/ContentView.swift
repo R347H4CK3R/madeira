@@ -2272,6 +2272,22 @@ struct ContentView: View {
             launchAfterJITEnded(started: false)
             return
         }
+        // LiveContainer-family hosts own the executable and debugger task. A guest
+        // cannot launch Madeira's bundled JIT extension as a separate app.
+        // Report host-side setup accurately instead of attempting a guest helper.
+        if getenv("LC_HOME_PATH") != nil && !StikJITHelper.ready {
+            if StikJITHelper.flaggedWithoutDebugger {
+                logStore.log("[strata-jit] Guest has CS_DEBUGGED but no live debugger. Configure the Strata host to keep its debugger attached for Madeira's BRK pool request.", level: .error)
+            } else {
+                logStore.log("[strata-jit] JIT must be activated for Strata's host process with Madeira's custom BRK script before launching the guest.", level: .error)
+            }
+            jitStatus = .unavailable
+            if library.enabled {
+                library.error = "Madeira is running inside Strata/LiveContainer. Activate JIT for Strata's host process using Madeira's JIT script, then relaunch the guest. Madeira's built-in helper cannot run inside Strata."
+            }
+            launchAfterJITEnded(started: false)
+            return
+        }
         jitStatus = .testing
         logStore.log("Requesting JIT with \(jitCoordinator.resolvedMethod.title)...")
 
@@ -3260,6 +3276,54 @@ struct ContentView: View {
         }
     }
 
+    /// Import locally supplied x64 PE guest runtime libraries from a private
+    /// IPA bundle or from Documents/vc-runtime-x64 on a public installation.
+    /// Neither source changes the architecture of the native iOS executable.
+    private func stagePersonalVCRuntime() {
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let target = documents.appendingPathComponent("wine/drive_c/windows/system32", isDirectory: true)
+        let manager = FileManager.default
+        let required = ["vcruntime140.dll", "msvcp140.dll"]
+        let optional = ["vcruntime140_1.dll", "msvcp140_1.dll", "msvcp140_2.dll", "concrt140.dll", "vcomp140.dll"]
+        let sources = [
+            documents.appendingPathComponent("vc-runtime-x64", isDirectory: true),
+            Bundle.main.bundleURL.appendingPathComponent("x86_64-vcruntime", isDirectory: true)
+        ]
+
+        func isX64PE(_ url: URL) -> Bool {
+            guard let data = try? Data(contentsOf: url, options: .mappedIfSafe),
+                  data.count >= 0x40, data[0] == 0x4d, data[1] == 0x5a else { return false }
+            let offset = Int(data[0x3c]) | (Int(data[0x3d]) << 8)
+                | (Int(data[0x3e]) << 16) | (Int(data[0x3f]) << 24)
+            guard offset >= 0x40, offset + 6 <= data.count else { return false }
+            return data[offset] == 0x50 && data[offset + 1] == 0x45
+                && data[offset + 2] == 0 && data[offset + 3] == 0
+                && data[offset + 4] == 0x64 && data[offset + 5] == 0x86
+        }
+        guard let source = sources.first(where: { folder in
+            required.allSatisfy { isX64PE(folder.appendingPathComponent($0)) }
+        }) else {
+            logStore.log("[vc-runtime] No valid x64 runtime in Documents/vc-runtime-x64 or bundle x86_64-vcruntime.", level: .info)
+            return
+        }
+        do {
+            try manager.createDirectory(at: target, withIntermediateDirectories: true)
+            var count = 0
+            for name in required + optional {
+                let from = source.appendingPathComponent(name)
+                let to = target.appendingPathComponent(name)
+                guard isX64PE(from) else { continue }
+                // Never clobber an already-installed Wine or newer native DLL.
+                guard !manager.fileExists(atPath: to.path) else { continue }
+                try manager.copyItem(at: from, to: to)
+                count += 1
+            }
+            logStore.log("[vc-runtime] Installed \(count) user-supplied x64 runtime DLLs into Wine prefix.", level: .success)
+        } catch {
+            logStore.log("[vc-runtime] Import failed: \(error.localizedDescription)", level: .error)
+        }
+    }
+
     private func startWineProcess() {
         logStore.log("Starting Wine process...")
 
@@ -3270,6 +3334,7 @@ struct ContentView: View {
 
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let winePrefixPath = documentsPath.appendingPathComponent("wine").path
+        stagePersonalVCRuntime()
 
         // Call synchronously — caller already waited for wineserver to be ready
         let result = wine_process_start(winePrefixPath)

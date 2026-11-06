@@ -1,24 +1,63 @@
 name: StrataForge PR build validation
 on:
   push:
-    branches: [main]
-    paths:
-      - '.github/workflows/strataforge-pr-validation.yml'
+    branches: [fix/strata-wine-jit-20261030]
   pull_request:
+    branches: [main]
     paths:
       - 'strataforge-probe/**'
       - 'tools/strataforge_*.py'
       - 'tools/test_strataforge_*.py'
       - 'app/Madeira/**'
+      - 'tests/host/**'
+      - 'build/wineserver/**'
+      - 'tools/bootstrap-strata-deps.sh'
+      - 'tools/audit-strata-ipa-inputs.py'
+      - 'tools/verify-wineserver-ios-arm64.sh'
       - '.github/workflows/strataforge-*.yml'
+      - '.github/workflows/madeira-macos-build-probe.yml'
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
+
   audit:
-    runs-on: macos-15
+    runs-on: macos-15-intel
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+      - name: Confirm Xcode SDK and native project are readable
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path
+          xcodebuild -list -project app/Madeira.xcodeproj
+      - name: Test Strata JIT and dependency contract on PR source
+        run: |
+          set -euo pipefail
+          python3 tests/host/test-strata-bootstrap.py
+          python3 tests/host/check-jit-method.py
+          bash -n tools/bootstrap-strata-deps.sh tools/verify-wineserver-ios-arm64.sh
+          python3 -m py_compile tools/audit-strata-ipa-inputs.py
+      - name: Report honest IPA link readiness
+        shell: bash
+        run: |
+          python3 tools/audit-strata-ipa-inputs.py --output /tmp/strataforge-pr-ipa-inputs.json || test "$?" -eq 1
+          echo "PR source and input audit only; host debugger, Wine handshake, and physical-device rendering remain unverified." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: strataforge-pr-readiness-audit
+          path: /tmp/strataforge-pr-ipa-inputs.json
+          if-no-files-found: warn
+
+  baseline-feasibility-probe:
+    if: github.event_name != 'push'
+    runs-on: macos-15-intel
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
         with:
           ref: feature/strataforge-feasibility
       - name: Validate redaction tests
@@ -32,7 +71,7 @@ jobs:
           xcodegen generate
           set -o pipefail
           xcodebuild -project StrataForgeProbe.xcodeproj -scheme StrataForgeProbe -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath ./DerivedData CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build.log
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: strataforge-pr-validation-logs

@@ -12,14 +12,26 @@ SHIMS_DIR="$REPO_ROOT/build/ntdll-unix/shims"
 OBJ_DIR="$BUILD_DIR/obj"
 mkdir -p "$OBJ_DIR"
 
-# Copy the base library if we don't have one yet
-if [ ! -f "$OBJ_DIR/libwineserver.a" ]; then
-    if [ -f "$APP_LIB" ]; then
-        cp "$APP_LIB" "$OBJ_DIR/libwineserver.a"
+# The patcher requires a real prebuilt Wine server archive. A zero-byte
+# placeholder, corrupt archive, or stale directory must never pass as a build.
+# Verify before compiling anything; this script does not create the base.
+BASE_LIB="$OBJ_DIR/libwineserver.a"
+if [ ! -s "$BASE_LIB" ]; then
+    if [ -s "$APP_LIB" ]; then
+        cp "$APP_LIB" "$BASE_LIB"
     else
-        echo "ERROR: No base libwineserver.a found"
-        exit 1
+        echo "No prebuilt Wine server archive. Building from pinned Wine sources..."
+        bash "$BUILD_DIR/build-base.sh"
     fi
+fi
+if ! ar t "$BASE_LIB" >/dev/null 2>&1; then
+    echo "ERROR: Base libwineserver.a is not a readable static archive: $BASE_LIB" >&2
+    exit 1
+fi
+if ! ar t "$BASE_LIB" | grep -Fxq 'request.o'; then
+    echo "ERROR: Base libwineserver.a lacks request.o: $BASE_LIB" >&2
+    echo "This is not a complete Wine server base archive; refusing to patch it." >&2
+    exit 1
 fi
 
 CC_FLAGS=(
